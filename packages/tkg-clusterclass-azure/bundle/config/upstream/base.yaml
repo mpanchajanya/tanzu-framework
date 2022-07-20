@@ -488,7 +488,7 @@ spec:
             contentFrom:
               secret:
                 key: control-plane-azure.json
-                name: {{ .builtin.cluster.name -}} -control-plane-azure-json
+                name: {{ .builtin.controlPlane.machineTemplate.infrastructureRef.name -}} -azure-json
             owner: root:root
             path: /etc/kubernetes/azure.json
             permissions: "0644"
@@ -607,7 +607,7 @@ spec:
             contentFrom:
               secret:
                 key: worker-node-azure.json
-                name: {{ .builtin.cluster.name -}} - {{- .builtin.machineDeployment.topologyName -}} -azure-json
+                name: {{ .builtin.machineDeployment.infrastructureRef.name -}} -azure-json
             owner: root:root
             path: /etc/kubernetes/azure.json
             permissions: "0644"
