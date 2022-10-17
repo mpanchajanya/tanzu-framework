@@ -1,0 +1,186 @@
+package config
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/pkg/errors"
+	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	"gopkg.in/yaml.v3"
+)
+
+func NewClientConfig() *configapi.ClientConfig {
+	c := newClientConfig()
+	return c
+}
+
+func newClientConfig() *configapi.ClientConfig {
+	c := &configapi.ClientConfig{}
+
+	// Check if the lock is acquired by the current process or not
+	// If not try to acquire the lock before Storing the client config
+	// and release the lock after updating the config
+	if !IsTanzuConfigLockAcquired() {
+		AcquireTanzuConfigLock()
+		defer ReleaseTanzuConfigLock()
+	}
+
+	return c
+}
+
+// GetClientConfig retrieves the config from the local directory with file lock
+func GetClientConfig() (cfg *configapi.ClientConfig, err error) {
+	// Acquire tanzu config lock
+	AcquireTanzuConfigLock()
+	defer ReleaseTanzuConfigLock()
+	return GetClientConfigNoLock()
+}
+
+// GetClientConfigNoLock retrieves the config from the local directory without acquiring the lock
+func GetClientConfigNoLock() (cfg *configapi.ClientConfig, err error) {
+
+	cfgPath, err := ClientConfigPath()
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := os.ReadFile(cfgPath)
+	if err != nil {
+		fmt.Errorf("failed to read in config: %v\n", err)
+		cfg = NewClientConfig()
+
+		return cfg, nil
+	}
+	// Logging
+
+	err = yaml.Unmarshal(b, &cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to construct struct from config data")
+	}
+
+	return cfg, nil
+}
+
+// StoreClientConfig stores the config in the local directory.
+// Make sure to Acquire and Release tanzu lock when reading/writing to the
+// tanzu client configuration
+// Deprecated: StoreClientConfig is deprecated. Use New Config API methods
+func StoreClientConfig(cfg *configapi.ClientConfig) error {
+	// new plugins would be setting only contexts, so populate servers for backwards compatibility
+	populateServers(cfg)
+	// old plugins would be setting only servers, so populate contexts for forwards compatibility
+	PopulateContexts(cfg)
+
+	node, err := GetClientConfigNode()
+	if err != nil {
+		return err
+	}
+
+	if cfg.KnownServers != nil {
+		for _, server := range cfg.KnownServers {
+			err = setServer(node, server)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if cfg.KnownContexts != nil {
+		for _, context := range cfg.KnownContexts {
+			err = setContext(node, context)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if cfg.CurrentServer != "" {
+		setCurrentServer(node, cfg.CurrentServer)
+
+	}
+
+	if cfg.CurrentContext != nil {
+
+		for _, contextName := range cfg.CurrentContext {
+			ctx, contextErr := cfg.GetContext(contextName)
+			if contextErr != nil {
+				return contextErr
+			}
+			setCurrentContext(node, ctx)
+		}
+
+	}
+
+	if cfg.ClientOptions != nil {
+		if cfg.ClientOptions.Features != nil {
+			for plugin, _ := range cfg.ClientOptions.Features {
+				for key, value := range cfg.ClientOptions.Features[plugin] {
+					err = setFeature(node, plugin, key, value)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		if cfg.ClientOptions.Env != nil {
+			for key, value := range cfg.ClientOptions.Env {
+				err = setEnv(node, key, value)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if cfg.ClientOptions.CLI != nil {
+			if cfg.ClientOptions.CLI.UnstableVersionSelector != "" {
+				err = setUnstableVersionSelector(node, string(cfg.ClientOptions.CLI.UnstableVersionSelector))
+				if err != nil {
+					return err
+				}
+
+			}
+
+		}
+
+		if cfg.ClientOptions.CLI != nil {
+			if cfg.ClientOptions.CLI.DiscoverySources != nil && len(cfg.ClientOptions.CLI.DiscoverySources) != 0 {
+				for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
+					err = setCLIDiscoverySource(node, discoverySource)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+		}
+
+		if cfg.ClientOptions.CLI != nil {
+			if cfg.ClientOptions.CLI.Repositories != nil && len(cfg.ClientOptions.CLI.Repositories) != 0 {
+				for _, repository := range cfg.ClientOptions.CLI.Repositories {
+					err = setCLIRepository(node, repository)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+		}
+
+	}
+
+	return PersistNode(node)
+}
+
+// DeleteClientConfig deletes the config from the local directory.
+func DeleteClientConfig() error {
+	cfgPath, err := ClientConfigPath()
+	if err != nil {
+		return err
+	}
+	err = os.Remove(cfgPath)
+	if err != nil {
+		return errors.Wrap(err, "could not remove config")
+	}
+	return nil
+}

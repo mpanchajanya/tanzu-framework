@@ -9,41 +9,51 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 )
 
 func setup(t *testing.T) {
-	LocalDirName = fmt.Sprintf(".tanzu-test-%s", randString())
-	cfg := &configapi.ClientConfig{
-		KnownContexts: []*configapi.Context{
-			{
-				Name: "test-mc",
-				Type: configapi.CtxTypeK8s,
-				ClusterOpts: &configapi.ClusterServer{
-					Endpoint:            "test-endpoint",
-					Path:                "test-path",
-					Context:             "test-context",
-					IsManagementCluster: true,
-				},
-			},
-			{
-				Name: "test-tmc",
-				Type: configapi.CtxTypeTMC,
-				GlobalOpts: &configapi.GlobalServer{
-					Endpoint: "test-endpoint",
-				},
-			},
-		},
-		CurrentContext: map[configapi.ContextType]string{
-			configapi.CtxTypeK8s: "test-mc",
-			configapi.CtxTypeTMC: "test-tmc",
-		},
-	}
+	LocalDirName = fmt.Sprintf(".tanzu-test")
+	//cfg := &v1alpha1.ClientConfig{
+	//	KnownContexts: []*v1alpha1.Context{
+	//		{
+	//			Name: "test-mc",
+	//			Type: "k8s",
+	//			ClusterOpts: &v1alpha1.ClusterServer{
+	//				Endpoint:            "test-endpoint",
+	//				Path:                "test-path",
+	//				Context:             "test-context",
+	//				IsManagementCluster: true,
+	//			},
+	//		},
+	//		{
+	//			Name: "test-tmc",
+	//			Type: "tmc",
+	//			GlobalOpts: &v1alpha1.GlobalServer{
+	//				Endpoint: "test-endpoint",
+	//			},
+	//		},
+	//	},
+	//	CurrentContext: map[string]string{
+	//		"k8s": "test-mc",
+	//		"tmc": "test-tmc",
+	//	},
+	//}
+	//
+	//AcquireTanzuConfigLock()
+	//defer ReleaseTanzuConfigLock()
+	//err := PersistConfig(cfg)
+	//require.NoError(t, err)
+}
 
-	AcquireTanzuConfigLock()
-	defer ReleaseTanzuConfigLock()
-	err := StoreClientConfig(cfg)
+func setUpLocalDirName(t *testing.T) {
+	LocalDirName = fmt.Sprintf(".tanzu-test")
+}
+
+func setUpClientConfigWithNoContexts(t *testing.T) {
+	node, err := NewClientConfigNode()
+	require.NoError(t, err)
+	err = PersistNode(node)
 	require.NoError(t, err)
 }
 
@@ -51,9 +61,66 @@ func cleanup() {
 	cleanupDir(LocalDirName)
 }
 
+func TestSetContextWithDiscoverySource(t *testing.T) {
+	setUpLocalDirName(t)
+	// setUpClientConfigWithNoContexts(t)
+	// cleanup()
+
+	tests := []struct {
+		name    string
+		ctx     *v1alpha1.Context
+		current bool
+		errStr  string
+	}{
+		{
+			name: "success k8s",
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint",
+					Path:                "test-path",
+					Context:             "test-context",
+					IsManagementCluster: true,
+				},
+				DiscoverySources: []v1alpha1.PluginDiscovery{
+					{
+						GCP: &v1alpha1.GCPDiscovery{
+							Name:         "test",
+							Bucket:       "updated-test-bucket",
+							ManifestPath: "test-manifest-path",
+						},
+						ContextType: v1alpha1.CtxTypeTMC,
+					},
+				},
+			},
+			current: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := SetContext(tc.ctx, tc.current)
+			if tc.errStr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tc.errStr)
+			}
+
+			ok, err := ContextExists(tc.ctx.Name)
+			assert.True(t, ok)
+			assert.NoError(t, err)
+			//ok, err = ServerExists(tc.ctx.Name)
+			//assert.True(t, ok)
+			//assert.NoError(t, err)
+		})
+	}
+
+}
+
 func TestGetContext(t *testing.T) {
 	setup(t)
-	defer cleanup()
+	// defer cleanup()
 
 	tcs := []struct {
 		name    string
@@ -78,6 +145,9 @@ func TestGetContext(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			c, err := GetContext(tc.ctxName)
+			if err != nil {
+				fmt.Printf("errors: %v\n", err)
+			}
 			if tc.errStr == "" {
 				assert.Equal(t, tc.ctxName, c.Name)
 				assert.NoError(t, err)
@@ -122,23 +192,23 @@ func TestContextExists(t *testing.T) {
 	}
 }
 
-func TestAddContext(t *testing.T) {
+func TestSetContext(t *testing.T) {
 	setup(t)
-	defer cleanup()
+	//defer cleanup()
 
 	tcs := []struct {
 		name    string
-		ctx     *configapi.Context
+		ctx     *v1alpha1.Context
 		current bool
 		errStr  string
 	}{
 		{
 			name: "success k8s current",
-			ctx: &configapi.Context{
-				Name: "test-mc1",
-				Type: configapi.CtxTypeK8s,
-				ClusterOpts: &configapi.ClusterServer{
-					Endpoint:            "test-endpoint",
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint-updated",
 					Path:                "test-path",
 					Context:             "test-context",
 					IsManagementCluster: true,
@@ -148,10 +218,10 @@ func TestAddContext(t *testing.T) {
 		},
 		{
 			name: "success k8s not_current",
-			ctx: &configapi.Context{
+			ctx: &v1alpha1.Context{
 				Name: "test-mc2",
-				Type: configapi.CtxTypeK8s,
-				ClusterOpts: &configapi.ClusterServer{
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
 					Endpoint:            "test-endpoint",
 					Path:                "test-path",
 					Context:             "test-context",
@@ -161,10 +231,10 @@ func TestAddContext(t *testing.T) {
 		},
 		{
 			name: "success tmc current",
-			ctx: &configapi.Context{
+			ctx: &v1alpha1.Context{
 				Name: "test-tmc1",
-				Type: configapi.CtxTypeTMC,
-				GlobalOpts: &configapi.GlobalServer{
+				Type: "tmc",
+				GlobalOpts: &v1alpha1.GlobalServer{
 					Endpoint: "test-endpoint",
 				},
 			},
@@ -172,50 +242,43 @@ func TestAddContext(t *testing.T) {
 		},
 		{
 			name: "success tmc not_current",
-			ctx: &configapi.Context{
+			ctx: &v1alpha1.Context{
 				Name: "test-tmc2",
-				Type: configapi.CtxTypeTMC,
-				GlobalOpts: &configapi.GlobalServer{
+				Type: "tmc",
+				GlobalOpts: &v1alpha1.GlobalServer{
 					Endpoint: "test-endpoint",
 				},
 			},
 		},
 		{
-			name: "failure k8s",
-			ctx: &configapi.Context{
+			name: "success update test-mc",
+			ctx: &v1alpha1.Context{
 				Name: "test-mc",
-				Type: configapi.CtxTypeK8s,
-				ClusterOpts: &configapi.ClusterServer{
-					Endpoint:            "test-endpoint",
-					Path:                "test-path",
-					Context:             "test-context",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "good-test-endpoint",
+					Path:                "updated-test-path",
+					Context:             "updated-test-context",
 					IsManagementCluster: true,
 				},
 			},
-			errStr: "context \"test-mc\" already exists",
 		},
 		{
-			name: "failure tmc",
-			ctx: &configapi.Context{
+			name: "success update tmc",
+			ctx: &v1alpha1.Context{
 				Name: "test-tmc",
-				Type: configapi.CtxTypeTMC,
-				GlobalOpts: &configapi.GlobalServer{
-					Endpoint: "test-endpoint",
+				Type: "tmc",
+				GlobalOpts: &v1alpha1.GlobalServer{
+					Endpoint: "updated-test-endpoint",
 				},
 			},
-			errStr: "context \"test-tmc\" already exists",
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.errStr == "" {
-				ok, err := ContextExists(tc.ctx.Name)
-				require.False(t, ok)
-				require.NoError(t, err)
-			}
-
-			err := AddContext(tc.ctx, tc.current)
+			err := SetContext(tc.ctx, tc.current)
+			fmt.Printf("eeeeee %v\n", err)
 			if tc.errStr == "" {
 				assert.NoError(t, err)
 			} else {
@@ -234,23 +297,23 @@ func TestAddContext(t *testing.T) {
 
 func TestRemoveContext(t *testing.T) {
 	setup(t)
-	defer cleanup()
+	//defer cleanup()
 
 	tcs := []struct {
 		name    string
 		ctxName string
-		ctxType configapi.ContextType
+		ctxType v1alpha1.ContextType
 		errStr  string
 	}{
 		{
 			name:    "success k8s",
 			ctxName: "test-mc",
-			ctxType: configapi.CtxTypeK8s,
+			ctxType: "k8s",
 		},
 		{
 			name:    "success tmc",
 			ctxName: "test-tmc",
-			ctxType: configapi.CtxTypeTMC,
+			ctxType: "tmc",
 		},
 		{
 			name:    "failure",
@@ -286,23 +349,23 @@ func TestRemoveContext(t *testing.T) {
 
 func TestSetCurrentContext(t *testing.T) {
 	setup(t)
-	defer cleanup()
+	//defer cleanup()
 
 	tcs := []struct {
 		name    string
-		ctxType configapi.ContextType
+		ctxType v1alpha1.ContextType
 		ctxName string
 		errStr  string
 	}{
 		{
 			name:    "success k8s",
-			ctxName: "test-mc",
-			ctxType: configapi.CtxTypeK8s,
+			ctxName: "test-mc1",
+			ctxType: "k8s",
 		},
 		{
 			name:    "success tmc",
 			ctxName: "test-tmc",
-			ctxType: configapi.CtxTypeTMC,
+			ctxType: "tmc",
 		},
 		{
 			name:    "failure",
@@ -331,58 +394,6 @@ func TestSetCurrentContext(t *testing.T) {
 			assert.NoError(t, err)
 			if tc.errStr == "" {
 				assert.Equal(t, tc.ctxName, currSrv.Name)
-			}
-		})
-	}
-}
-
-func TestGetCurrentContext(t *testing.T) {
-	setup(t)
-	defer cleanup()
-
-	tcs := []struct {
-		name    string
-		ctxType configapi.ContextType
-		ctxName string
-		errStr  string
-	}{
-		{
-			name:    "success k8s",
-			ctxType: configapi.CtxTypeK8s,
-			ctxName: "test-mc",
-		},
-		{
-			name:    "success tmc",
-			ctxType: configapi.CtxTypeTMC,
-			ctxName: "test-tmc",
-		},
-		{
-			name:    "failure k8s",
-			ctxType: configapi.CtxTypeK8s,
-			ctxName: "test-mc",
-			errStr:  "no current context set for type \"k8s\"",
-		},
-		{
-			name:    "failure tmc",
-			ctxType: configapi.CtxTypeTMC,
-			ctxName: "test-tmc",
-			errStr:  "no current context set for type \"tmc\"",
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.errStr != "" {
-				err := RemoveContext(tc.ctxName)
-				require.NoError(t, err)
-			}
-
-			curr, err := GetCurrentContext(tc.ctxType)
-			if tc.errStr == "" {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.ctxName, curr.Name)
-			} else {
-				assert.EqualError(t, err, tc.errStr)
 			}
 		})
 	}

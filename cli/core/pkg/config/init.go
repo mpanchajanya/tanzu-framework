@@ -22,13 +22,10 @@ func init() {
 
 	addedDefaultDiscovery := populateDefaultStandaloneDiscovery(c)
 	addedFeatureFlags := addDefaultFeatureFlagsIfMissing(c, config.DefaultCliFeatureFlags)
-	addedEdition := addDefaultEditionIfMissing(c)
-	addedBomRepo := AddBomRepoIfMissing(c)
-	addedCompatabilityFile := AddCompatibilityFileIfMissing(c)
 	// contexts could be lost when older plugins edit the config, so populate them from servers
 	addedContexts := config.PopulateContexts(c)
 
-	if addedFeatureFlags || addedDefaultDiscovery || addedEdition || addedCompatabilityFile || addedBomRepo || addedContexts {
+	if addedFeatureFlags || addedDefaultDiscovery || addedContexts {
 		_ = config.StoreClientConfig(c)
 	}
 }

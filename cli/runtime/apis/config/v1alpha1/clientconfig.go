@@ -188,21 +188,3 @@ func (c *ClientConfig) SplitFeaturePath(featurePath string) (string, string, err
 	}
 	return plugin, flag, nil
 }
-
-// SetEditionSelector indicates the edition of tanzu to be run
-// EditionStandard is the default, EditionCommunity is also available.
-// These values affect branding and cluster creation
-func (c *ClientConfig) SetEditionSelector(edition EditionSelector) {
-	if c.ClientOptions == nil {
-		c.ClientOptions = &ClientOptions{}
-	}
-	if c.ClientOptions.CLI == nil {
-		c.ClientOptions.CLI = &CLIOptions{}
-	}
-	switch edition {
-	case EditionCommunity, EditionStandard:
-		c.ClientOptions.CLI.Edition = edition
-		return
-	}
-	c.ClientOptions.CLI.UnstableVersionSelector = EditionStandard
-}
