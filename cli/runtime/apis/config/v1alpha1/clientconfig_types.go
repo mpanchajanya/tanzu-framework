@@ -165,15 +165,15 @@ type CLIOptions struct {
 	// UnstableVersionSelector determined which version tags are allowed
 	UnstableVersionSelector VersionSelectorLevel `json:"unstableVersionSelector,omitempty" yaml:"unstableVersionSelector,omitempty" mapstructure:"unstableVersionSelector,omitempty"`
 	// Edition
-	// Edition EditionSelector `json:"edition,omitempty" yaml:"edition,omitempty" mapstructure:"edition,omitempty"`
+	Edition EditionSelector `json:"edition,omitempty" yaml:"edition,omitempty" mapstructure:"edition,omitempty"`
 	// Deprecated: BOMRepo has been deprecated and will be removed from future version
 	// BOMRepo is the root repository URL used to resolve the compatibiilty file
 	// and bill of materials. An example URL is projects.registry.vmware.com/tkg.
-	//	BOMRepo string `json:"bomRepo,omitempty" yaml:"bomRepo,omitempty" mapstructure:"bomRepo,omitempty"`
+	BOMRepo string `json:"bomRepo,omitempty" yaml:"bomRepo,omitempty" mapstructure:"bomRepo,omitempty"`
 	// Deprecated: CompatibilityFilePath has been deprecated and will be removed from future version
 	// CompatibilityFilePath is the path, from the BOM repo, to download and access the compatibility file.
 	// the compatibility file is used for resolving the bill of materials for creating clusters.
-	//	CompatibilityFilePath string `json:"compatibilityFilePath,omitempty" yaml:"compatibilityFilePath,omitempty" mapstructure:"compatibilityFilePath,omitempty"`
+	CompatibilityFilePath string `json:"compatibilityFilePath,omitempty" yaml:"compatibilityFilePath,omitempty" mapstructure:"compatibilityFilePath,omitempty"`
 }
 
 // PluginDiscovery contains a specific distribution mechanism. Only one of the
