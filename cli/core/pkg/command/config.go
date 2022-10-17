@@ -112,10 +112,6 @@ func setConfiguration(cfg *configapi.ClientConfig, pathParam, value string) erro
 		return setUnstableVersions(cfg, value)
 	}
 
-	if pathParam == "cli.edition" {
-		return setEdition(cfg, value)
-	}
-
 	// parse the param
 	paramArray := strings.Split(pathParam, ".")
 	if len(paramArray) < 2 {
@@ -182,18 +178,6 @@ func setUnstableVersions(cfg *configapi.ClientConfig, value string) error {
 		cfg.SetUnstableVersionSelector(optionKey)
 	default:
 		return fmt.Errorf("unknown unstable-versions setting: %s; should be one of [all, none, alpha, experimental]", optionKey)
-	}
-	return nil
-}
-
-func setEdition(cfg *configapi.ClientConfig, edition string) error {
-	editionOption := configapi.EditionSelector(edition)
-
-	switch editionOption {
-	case configapi.EditionCommunity, configapi.EditionStandard:
-		cfg.SetEditionSelector(editionOption)
-	default:
-		return fmt.Errorf("unknown edition: %s; should be one of [%s, %s]", editionOption, configapi.EditionStandard, configapi.EditionCommunity)
 	}
 	return nil
 }
