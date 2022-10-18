@@ -66,7 +66,6 @@ func GetClientConfigNoLock() (cfg *configapi.ClientConfig, err error) {
 // tanzu client configuration
 // Deprecated: StoreClientConfig is deprecated. Use New Config API methods
 func StoreClientConfig(cfg *configapi.ClientConfig) error {
-	fmt.Printf("***********************%v\n", cfg)
 	// new plugins would be setting only contexts, so populate servers for backwards compatibility
 	populateServers(cfg)
 	// old plugins would be setting only servers, so populate contexts for forwards compatibility

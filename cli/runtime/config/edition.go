@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
@@ -41,8 +39,6 @@ func setEdition(node *yaml.Node, val string) error {
 			{Name: KeyEdition, Type: yaml.ScalarNode, Value: val},
 		}
 	}
-	fmt.Println("hello")
-	fmt.Println(node.Content[0])
 	editionNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
 		return err
