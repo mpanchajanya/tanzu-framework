@@ -12,4 +12,5 @@ const (
 	KeyDiscoverySources        = "discoverySources"
 	KeyRepositories            = "repositories"
 	KeyUnstableVersionSelector = "unstableVersionSelector"
+	KeyEdition                 = "edition"
 )

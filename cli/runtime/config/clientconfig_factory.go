@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
@@ -24,7 +23,7 @@ func GetClientConfigNodeNoLock() (*yaml.Node, error) {
 		return nil, errors.Wrap(err, "GetClientConfigNodeNoLock: failed getting client config path")
 	}
 
-	bytes, err := ioutil.ReadFile(cfgPath)
+	bytes, err := os.ReadFile(cfgPath)
 	if err != nil || len(bytes) == 0 {
 		fmt.Errorf("failed to read in config: %v\n", err)
 		node, err := NewClientConfigNode()

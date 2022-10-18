@@ -189,9 +189,9 @@ func TestSetContext(t *testing.T) {
 		LocalDirName = fmt.Sprintf(".tanzu-test")
 	}()
 
-	defer func() {
-		cleanupDir(LocalDirName)
-	}()
+	//defer func() {
+	//	cleanupDir(LocalDirName)
+	//}()
 
 	tcs := []struct {
 		name    string
@@ -205,13 +205,26 @@ func TestSetContext(t *testing.T) {
 				Name: "test-mc",
 				Type: "k8s",
 				ClusterOpts: &v1alpha1.ClusterServer{
-					Endpoint:            "test-endpoint-updated",
+					Endpoint:            "test-endpoint",
 					Path:                "test-path",
 					Context:             "test-context",
 					IsManagementCluster: true,
 				},
 			},
 			current: true,
+		},
+		{
+			name: "success k8s current",
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint-updated",
+					Path:                "test-path",
+					Context:             "test-context",
+					IsManagementCluster: true,
+				},
+			},
 		},
 		{
 			name: "success k8s not_current",
@@ -399,6 +412,57 @@ func TestSetCurrentContext(t *testing.T) {
 			if tc.errStr == "" {
 				assert.Equal(t, tc.ctxName, currSrv.Name)
 			}
+		})
+	}
+}
+
+func TestSetContextWithReplaceStrategy(t *testing.T) {
+	// setup
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	//defer func() {
+	//	cleanupDir(LocalDirName)
+	//}()
+
+	tcs := []struct {
+		name    string
+		ctx     *v1alpha1.Context
+		current bool
+		errStr  string
+	}{
+		{
+			name: "success k8s current",
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint",
+					Path:                "test-path",
+					Context:             "test-context",
+					IsManagementCluster: true,
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			err := SetContext(tc.ctx, tc.current)
+			fmt.Printf("eeeeee %v\n", err)
+			if tc.errStr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tc.errStr)
+			}
+
+			ok, err := ContextExists(tc.ctx.Name)
+			assert.True(t, ok)
+			assert.NoError(t, err)
+			ok, err = ServerExists(tc.ctx.Name)
+			assert.True(t, ok)
+			assert.NoError(t, err)
 		})
 	}
 }

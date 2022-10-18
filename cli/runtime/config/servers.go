@@ -98,6 +98,16 @@ func RemoveCurrentServer(name string) error {
 
 }
 
+//Deprecated:- Use SetServer
+func AddServer(s *configapi.Server, setCurrent bool) error {
+	return SetServer(s, setCurrent)
+}
+
+//Deprecated:- Use SetServer
+func PutServer(s *configapi.Server, setCurrent bool) error {
+	return SetServer(s, setCurrent)
+}
+
 func SetServer(s *configapi.Server, setCurrent bool) error {
 
 	node, err := GetClientConfigNode()

@@ -364,7 +364,7 @@ func globalLogin(c *configapi.Context) (err error) {
 	a.Expiration = metav1.NewTime(expiresAt)
 	c.GlobalOpts.Auth = a
 
-	err = config.SetContext(c, true)
+	err = config.AddContext(c, true)
 	if err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func k8sLogin(c *configapi.Context) error {
 			log.Fatalf("failed to create context %q for a kubernetes cluster, %v", c.Name, err)
 			return err
 		}
-		err = config.SetContext(c, true)
+		err = config.AddContext(c, true)
 		if err != nil {
 			return err
 		}

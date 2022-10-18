@@ -20,6 +20,24 @@ func GetContext(name string) (*configapi.Context, error) {
 	return getContext(node, name)
 }
 
+//func patchStrategy(node *yaml.Node) func(key string) bool {
+//
+//	return func(key string) bool {
+//		keyPath := fmt.Sprintf("contexts.%v", key)
+//		replace, err := ShouldReplace(node, keyPath)
+//		if err != nil {
+//			return false
+//		}
+//		return replace
+//	}
+//
+//}
+
+//Deprecated:- Use SetContext
+func AddContext(c *configapi.Context, setCurrent bool) error {
+	return SetContext(c, setCurrent)
+}
+
 func SetContext(c *configapi.Context, setCurrent bool) error {
 	node, err := GetClientConfigNode()
 	if err != nil {
@@ -183,7 +201,16 @@ func getCurrentContext(node *yaml.Node, ctxType configapi.ContextType) (*configa
 		return nil, err
 	}
 	return cfg.GetCurrentContext(ctxType)
+}
 
+func setContexts(node *yaml.Node, contexts []*configapi.Context) (bool, error) {
+	for _, c := range contexts {
+		err := setContext(node, c)
+		if err != nil {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func setContext(node *yaml.Node, c *configapi.Context) error {
@@ -191,9 +218,8 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 	// Merge DiscoverSources separately
 	copyOfDiscoverySources := c.DiscoverySources
 	c.DiscoverySources = []configapi.PluginDiscovery{}
-	fmt.Println(copyOfDiscoverySources)
 
-	//convert context to nodeutils
+	//convert context to node
 	newContextNode, err := convertContextToNode(c)
 	if err != nil {
 		return err

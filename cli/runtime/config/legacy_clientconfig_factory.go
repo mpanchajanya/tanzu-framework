@@ -66,47 +66,45 @@ func GetClientConfigNoLock() (cfg *configapi.ClientConfig, err error) {
 // tanzu client configuration
 // Deprecated: StoreClientConfig is deprecated. Use New Config API methods
 func StoreClientConfig(cfg *configapi.ClientConfig) error {
+	fmt.Printf("***********************%v\n", cfg)
 	// new plugins would be setting only contexts, so populate servers for backwards compatibility
 	populateServers(cfg)
 	// old plugins would be setting only servers, so populate contexts for forwards compatibility
 	PopulateContexts(cfg)
 
-	node, err := GetClientConfigNode()
+	node, err := GetClientConfigNodeNoLock()
 	if err != nil {
 		return err
 	}
 
-	if cfg.KnownServers != nil {
-		for _, server := range cfg.KnownServers {
-			err = setServer(node, server)
-			if err != nil {
-				return err
-			}
-		}
+	_, err = setServers(node, cfg.KnownServers)
+	if err != nil {
+		return err
 	}
 
-	if cfg.KnownContexts != nil {
-		for _, context := range cfg.KnownContexts {
-			err = setContext(node, context)
-			if err != nil {
-				return err
-			}
-		}
+	_, err = setContexts(node, cfg.KnownContexts)
+	if err != nil {
+		return err
 	}
 
 	if cfg.CurrentServer != "" {
-		setCurrentServer(node, cfg.CurrentServer)
+		_, err = setCurrentServer(node, cfg.CurrentServer)
+		if err != nil {
+			return err
+		}
 
 	}
 
 	if cfg.CurrentContext != nil {
-
 		for _, contextName := range cfg.CurrentContext {
 			ctx, contextErr := cfg.GetContext(contextName)
 			if contextErr != nil {
 				return contextErr
 			}
-			setCurrentContext(node, ctx)
+			err = setCurrentContext(node, ctx)
+			if err != nil {
+				return err
+			}
 		}
 
 	}
@@ -133,6 +131,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 		}
 
 		if cfg.ClientOptions.CLI != nil {
+
 			if cfg.ClientOptions.CLI.UnstableVersionSelector != "" {
 				err = setUnstableVersionSelector(node, string(cfg.ClientOptions.CLI.UnstableVersionSelector))
 				if err != nil {
@@ -141,9 +140,14 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 			}
 
-		}
+			if cfg.ClientOptions.CLI.Edition != "" {
+				err = setEdition(node, string(cfg.ClientOptions.CLI.Edition))
+				if err != nil {
+					return err
+				}
 
-		if cfg.ClientOptions.CLI != nil {
+			}
+
 			if cfg.ClientOptions.CLI.DiscoverySources != nil && len(cfg.ClientOptions.CLI.DiscoverySources) != 0 {
 				for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
 					err = setCLIDiscoverySource(node, discoverySource)
@@ -153,9 +157,6 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 				}
 			}
 
-		}
-
-		if cfg.ClientOptions.CLI != nil {
 			if cfg.ClientOptions.CLI.Repositories != nil && len(cfg.ClientOptions.CLI.Repositories) != 0 {
 				for _, repository := range cfg.ClientOptions.CLI.Repositories {
 					err = setCLIRepository(node, repository)
