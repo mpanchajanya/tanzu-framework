@@ -6,6 +6,7 @@ import (
 
 	"github.com/aunum/log"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,8 +24,8 @@ func ServerExists(name string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	_, err = getServer(node, name)
-	return err == nil, err
+	exists, err := getServer(node, name)
+	return exists != nil, err
 }
 
 func GetCurrentServer() (*configapi.Server, error) {
@@ -46,11 +47,17 @@ func SetCurrentServer(name string) error {
 		return err
 	}
 
-	setCurrentServer(node, name)
+	_, err = setCurrentServer(node, name)
+	if err != nil {
+		return err
+	}
 
 	// Front fill CurrentContext
 	c := convertServerToContext(s)
-	setCurrentContext(node, c)
+	err = setCurrentContext(node, c)
+	if err != nil {
+		return err
+	}
 
 	return PersistNode(node)
 }
@@ -82,7 +89,7 @@ func RemoveCurrentServer(name string) error {
 		return err
 	}
 
-	//_, err = removeContext(node, c.Name)
+	//_, err = removeContext(nodeutils, c.Name)
 	//if err != nil {
 	//	return err
 	//}
@@ -116,7 +123,10 @@ func SetServer(s *configapi.Server, setCurrent bool) error {
 	}
 
 	if setCurrent {
-		setCurrentContext(node, c)
+		err = setCurrentContext(node, c)
+		if err != nil {
+			return err
+		}
 	}
 
 	return PersistNode(node)
@@ -218,14 +228,23 @@ func appendURLScheme(endpoint string) string {
 	return e
 }
 
-func setCurrentServer(node *yaml.Node, name string) {
-	currentServerNode := FindParentNode(node, KeyCurrentServer)
-	if currentServerNode == nil {
-		node.Content[0].Content = append(node.Content[0].Content, CreateScalarNode(KeyCurrentServer, name)...)
-		currentServerNode = FindParentNode(node, KeyCurrentServer)
-	} else {
-		currentServerNode.Value = name
+func setCurrentServer(node *yaml.Node, name string) (bool, error) {
+
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyCurrentServer, Type: yaml.ScalarNode, Value: name},
+		}
 	}
+
+	currentServerNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return false, err
+	}
+
+	currentServerNode.Value = name
+
+	return true, nil
 }
 
 func getServer(node *yaml.Node, name string) (*configapi.Server, error) {
@@ -258,39 +277,49 @@ func getCurrentServer(node *yaml.Node) (s *configapi.Server, err error) {
 }
 
 func removeCurrentServer(node *yaml.Node, name string) error {
-	currentServerNode := FindParentNode(node, KeyCurrentServer)
+
+	configOptions := func(c *nodeutils.Config) {
+		c.Keys = []nodeutils.Key{
+			{Name: KeyCurrentServer},
+		}
+	}
+
+	currentServerNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
+	}
+
 	if currentServerNode == nil {
 		return nil
 	}
 
-	for _, serverNode := range currentServerNode.Content {
-		if index := getNodeIndex(serverNode.Content, name); index != -1 {
-			serverNode.Content[index].Value = ""
-		}
-	}
+	currentServerNode.Value = ""
+
 	return nil
 }
 
 func removeServer(node *yaml.Node, name string) (ok bool, err error) {
-	serversNode := FindParentNode(node, KeyServers)
-	if serversNode == nil {
-		return true, nil
+
+	configOptions := func(c *nodeutils.Config) {
+		c.Keys = []nodeutils.Key{
+			{Name: KeyServers},
+		}
+	}
+
+	serversNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return true, err
 	}
 
 	var servers []*yaml.Node
 	for _, serverNode := range serversNode.Content {
-		if index := getNodeIndex(serverNode.Content, "name"); index != -1 && serverNode.Content[index].Value == name {
+		if index := nodeutils.GetNodeIndex(serverNode.Content, "name"); index != -1 && serverNode.Content[index].Value == name {
 			continue
 		}
 		servers = append(servers, serverNode)
 	}
 
-	if len(servers) == 0 {
-		serversNode.Kind = yaml.ScalarNode
-		serversNode.Tag = "!!seq"
-	} else {
-		serversNode.Content = servers
-	}
+	serversNode.Content = servers
 
 	return true, nil
 }
@@ -314,24 +343,28 @@ func setServer(node *yaml.Node, s *configapi.Server) error {
 	s.DiscoverySources = []configapi.PluginDiscovery{}
 	fmt.Println(copyOfDiscoverySources)
 
-	//convert server to node
+	//convert server to nodeutils
 	newNode, err := convertServerToNode(s)
 	if err != nil {
 		return err
 	}
 
-	serversNode := FindParentNode(node, KeyServers)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyServers, Type: yaml.SequenceNode},
+		}
+	}
 
-	if serversNode == nil {
-		//create context node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateSequenceNode(KeyServers)...)
-		serversNode = FindParentNode(node, KeyServers)
+	serversNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
 	}
 
 	exists := false
 	var result []*yaml.Node
 	for _, serverNode := range serversNode.Content {
-		if index := getNodeIndex(serverNode.Content, "name"); index != -1 && serverNode.Content[index].Value == s.Name {
+		if index := nodeutils.GetNodeIndex(serverNode.Content, "name"); index != -1 && serverNode.Content[index].Value == s.Name {
 			exists = true
 
 			for _, discoverySource := range copyOfDiscoverySources {
@@ -341,7 +374,7 @@ func setServer(node *yaml.Node, s *configapi.Server) error {
 				}
 			}
 
-			err = MergeNodes(newNode.Content[0], serverNode, nil)
+			err = nodeutils.MergeNodes(newNode.Content[0], serverNode, nil)
 			if err != nil {
 				return err
 			}

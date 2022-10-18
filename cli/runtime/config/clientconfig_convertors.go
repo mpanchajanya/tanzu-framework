@@ -10,7 +10,7 @@ import (
 func convertNodeToClientConfig(node *yaml.Node) (cfg *configapi.ClientConfig, err error) {
 	err = node.Decode(&cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode node to client config")
+		return nil, errors.Wrap(err, "failed to decode nodeutils to client config")
 	}
 	return cfg, err
 

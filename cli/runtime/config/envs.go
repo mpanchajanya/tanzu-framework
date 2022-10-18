@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/pkg/errors"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 
 	"gopkg.in/yaml.v3"
 )
@@ -71,22 +72,32 @@ func DeleteEnv(key string) error {
 
 func deleteEnv(node *yaml.Node, key string) (ok bool, err error) {
 
-	envsNode := FindParentSubNode(node, KeyClientOptions, KeyEnv)
+	configOptions := func(c *nodeutils.Config) {
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions},
+			{Name: KeyEnv},
+		}
+	}
+
+	envsNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return false, err
+	}
+
 	if envsNode == nil {
 		return true, nil
 	}
 
 	var currentEnvs []*yaml.Node
 	for _, envNode := range envsNode.Content {
-		if index := getNodeIndex(envNode.Content, key); index != -1 {
+
+		if index := nodeutils.GetNodeIndex(envsNode.Content, key); index != -1 {
 			continue
 		}
 		currentEnvs = append(currentEnvs, envNode)
 	}
 
-	if len(currentEnvs) != 0 {
-		envsNode.Content = currentEnvs
-	}
+	envsNode.Content = currentEnvs
 
 	return true, nil
 }
@@ -97,29 +108,33 @@ func SetEnv(key, value string) error {
 		return err
 	}
 
-	return setEnv(node, key, value)
+	err = setEnv(node, key, value)
+	if err != nil {
+		return err
+	}
+
+	return PersistNode(node)
 }
 
 func setEnv(node *yaml.Node, key, value string) error {
 
-	clientOptionsNode := FindParentNode(node, KeyClientOptions)
-	if clientOptionsNode == nil {
-		//create cliClientOptions node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateMappingNode(KeyClientOptions)...)
-		clientOptionsNode = FindParentNode(node, KeyClientOptions)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions, Type: yaml.MappingNode},
+			{Name: KeyEnv, Type: yaml.MappingNode},
+		}
 	}
 
-	envNode := FindNode(clientOptionsNode, KeyEnv)
-	if envNode == nil {
-		//create env node and add to clientOptionsNode node
-		clientOptionsNode.Content = append(clientOptionsNode.Content, CreateMappingNode(KeyEnv)...)
-		envNode = FindNode(clientOptionsNode, KeyEnv)
+	envsNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
 	}
 
-	if index := getNodeIndex(envNode.Content, key); index != -1 {
-		envNode.Content[index].Value = value
+	if index := nodeutils.GetNodeIndex(envsNode.Content, key); index != -1 {
+		envsNode.Content[index].Value = value
 	} else {
-		envNode.Content = append(envNode.Content, CreateScalarNode(key, value)...)
+		envsNode.Content = append(envsNode.Content, nodeutils.CreateScalarNode(key, value)...)
 	}
 	return nil
 }

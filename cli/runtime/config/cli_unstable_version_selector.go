@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/pkg/errors"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,27 +28,21 @@ func getUnstableVersionSelector(node *yaml.Node) (configapi.VersionSelectorLevel
 }
 
 func setUnstableVersionSelector(node *yaml.Node, name string) error {
-	clientOptionsNode := FindParentNode(node, KeyClientOptions)
-	if clientOptionsNode == nil {
-		//create cliClientOptions node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateMappingNode(KeyClientOptions)...)
-		clientOptionsNode = FindParentNode(node, KeyClientOptions)
+
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions, Type: yaml.MappingNode},
+			{Name: KeyCLI, Type: yaml.MappingNode},
+			{Name: KeyUnstableVersionSelector, Type: yaml.ScalarNode, Value: name},
+		}
 	}
 
-	cliNode := FindNode(clientOptionsNode, KeyCLI)
-	if cliNode == nil {
-		//create cli node and add to root node
-		clientOptionsNode.Content = append(clientOptionsNode.Content, CreateMappingNode(KeyCLI)...)
-		cliNode = FindNode(clientOptionsNode, KeyCLI)
+	unstableVersionSelectorNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
 	}
-
-	unstableVersionSelectorNode := FindNode(cliNode, KeyUnstableVersionSelector)
-	if unstableVersionSelectorNode == nil {
-		cliNode.Content = append(cliNode.Content, CreateScalarNode(KeyUnstableVersionSelector, name)...)
-		unstableVersionSelectorNode = FindNode(cliNode, KeyUnstableVersionSelector)
-	} else {
-		unstableVersionSelectorNode.Content[0].Value = name
-	}
+	unstableVersionSelectorNode.Content[0].Value = name
 
 	return nil
 

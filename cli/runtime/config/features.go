@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 
 	"gopkg.in/yaml.v3"
 )
@@ -54,20 +55,23 @@ func DeleteFeature(plugin, key string) error {
 }
 
 func deleteFeature(node *yaml.Node, plugin, key string) error {
+	configOptions := func(c *nodeutils.Config) {
 
-	featuresNode := FindParentSubNode(node, KeyClientOptions, KeyFeatures)
-	if featuresNode == nil {
-		return nil
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions},
+			{Name: KeyFeatures},
+			{Name: plugin},
+		}
 	}
 
-	pluginNode := FindNode(featuresNode, plugin)
-	if pluginNode == nil {
-		return nil
+	pluginNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
 	}
 
 	var currentPluginFeatures []*yaml.Node
 	for _, pluginFeatureNode := range pluginNode.Content {
-		if index := getNodeIndex(pluginFeatureNode.Content, key); index != -1 {
+		if index := nodeutils.GetNodeIndex(pluginFeatureNode.Content, key); index != -1 {
 			continue
 		}
 		currentPluginFeatures = append(currentPluginFeatures, pluginFeatureNode)
@@ -91,12 +95,24 @@ func SetFeature(plugin, key, value string) error {
 
 func setFeature(node *yaml.Node, plugin, key, value string) error {
 
-	pluginNode := findPluginNode(plugin, node)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions, Type: yaml.MappingNode},
+			{Name: KeyFeatures, Type: yaml.MappingNode},
+			{Name: plugin, Type: yaml.MappingNode},
+		}
+	}
 
-	if index := getNodeIndex(pluginNode.Content, key); index != -1 {
+	pluginNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
+	}
+
+	if index := nodeutils.GetNodeIndex(pluginNode.Content, key); index != -1 {
 		pluginNode.Content[index].Value = value
 	} else {
-		pluginNode.Content = append(pluginNode.Content, CreateScalarNode(key, value)...)
+		pluginNode.Content = append(pluginNode.Content, nodeutils.CreateScalarNode(key, value)...)
 	}
 	return nil
 }
@@ -107,44 +123,29 @@ func ConfigureDefaultFeatureFlagsIfMissing(plugin string, defaultFeatureFlags ma
 		return err
 	}
 
-	pluginNode := findPluginNode(plugin, node)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions, Type: yaml.MappingNode},
+			{Name: KeyFeatures, Type: yaml.MappingNode},
+			{Name: plugin, Type: yaml.MappingNode},
+		}
+	}
+
+	pluginNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
+	}
 
 	for key, value := range defaultFeatureFlags {
 		val := strconv.FormatBool(value)
-		if index := getNodeIndex(pluginNode.Content, key); index != -1 {
+		if index := nodeutils.GetNodeIndex(pluginNode.Content, key); index != -1 {
 			pluginNode.Content[index].Value = val
 		} else {
-			pluginNode.Content = append(pluginNode.Content, CreateScalarNode(key, val)...)
+			pluginNode.Content = append(pluginNode.Content, nodeutils.CreateScalarNode(key, val)...)
 		}
-
 	}
-
 	return nil
-
-}
-
-func findPluginNode(plugin string, node *yaml.Node) *yaml.Node {
-	clientOptionsNode := FindParentNode(node, KeyClientOptions)
-	if clientOptionsNode == nil {
-		//create cliClientOptions node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateMappingNode(KeyClientOptions)...)
-		clientOptionsNode = FindParentNode(node, KeyClientOptions)
-	}
-
-	featuresNode := FindNode(clientOptionsNode, KeyFeatures)
-	if featuresNode == nil {
-		//create features node and add to clientOptionsNode node
-		clientOptionsNode.Content = append(clientOptionsNode.Content, CreateMappingNode(KeyFeatures)...)
-		featuresNode = FindNode(clientOptionsNode, KeyFeatures)
-	}
-
-	pluginNode := FindNode(featuresNode, plugin)
-	if pluginNode == nil {
-		//create features node and add to clientOptionsNode node
-		featuresNode.Content = append(featuresNode.Content, CreateMappingNode(plugin)...)
-		pluginNode = FindNode(featuresNode, plugin)
-	}
-	return pluginNode
 }
 
 // IsFeatureActivated returns true if the given feature is activated

@@ -46,6 +46,7 @@ func GetClientConfigNodeNoLock() (*yaml.Node, error) {
 func NewClientConfigNode() (*yaml.Node, error) {
 	c := newClientConfig()
 	node, err := convertClientConfigToNode(c)
+	node.Content[0].Style = 0
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func PersistNode(node *yaml.Node) error {
 
 	data, err := yaml.Marshal(node)
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal node")
+		return errors.Wrap(err, "failed to marshal nodeutils")
 	}
 
 	err = os.WriteFile(cfgPath, data, 0644)

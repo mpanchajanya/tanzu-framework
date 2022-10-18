@@ -12,44 +12,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func setupDiscoverySources(t *testing.T) {
-	LocalDirName = fmt.Sprintf(".tanzu-test")
-	//cfg := &v1alpha1.ClientConfig{
-	//	KnownContexts: []*v1alpha1.Context{
-	//		{
-	//			Name: "test-mc",
-	//			Type: "k8s",
-	//			ClusterOpts: &v1alpha1.ClusterServer{
-	//				Endpoint:            "test-endpoint",
-	//				Path:                "test-path",
-	//				Context:             "test-context",
-	//				IsManagementCluster: true,
-	//			},
-	//		},
-	//		{
-	//			Name: "test-tmc",
-	//			Type: "tmc",
-	//			GlobalOpts: &v1alpha1.GlobalServer{
-	//				Endpoint: "test-endpoint",
-	//			},
-	//		},
-	//	},
-	//	CurrentContext: map[string]string{
-	//		"k8s": "test-mc",
-	//		"tmc": "test-tmc",
-	//	},
-	//}
-	//
-	//AcquireTanzuConfigLock()
-	//defer ReleaseTanzuConfigLock()
-	//err := PersistConfig(cfg)
-	//require.NoError(t, err)
-}
-
 func TestSetDiscoverySource(t *testing.T) {
-	setUpLocalDirName(t)
-	// setUpClientConfigWithNoContexts(t)
-	// cleanup()
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tests := []struct {
 		name            string

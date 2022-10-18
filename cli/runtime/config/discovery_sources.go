@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/pkg/errors"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,12 +22,18 @@ func setDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscove
 		return err
 	}
 
-	i := getNodeIndex(node.Content, KeyDiscoverySources)
-	if i == -1 {
-		node.Content = append(node.Content, CreateSequenceNode(KeyDiscoverySources)...)
-		i = getNodeIndex(node.Content, KeyDiscoverySources)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
+		}
 	}
-	discoverySourcesNode := node.Content[i]
+
+	discoverySourcesNode, err := nodeutils.FindNode(node, configOptions)
+
+	if err != nil {
+		return err
+	}
 
 	exists := false
 	var result []*yaml.Node
@@ -38,11 +45,11 @@ func setDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscove
 			return errors.New("not found")
 		}
 
-		if discoverySourceIndex := getNodeIndex(discoverySourceNode.Content, discoverySourceType); discoverySourceIndex != -1 {
-			if discoverySourceFieldIndex := getNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 && discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
+		if discoverySourceIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content, discoverySourceType); discoverySourceIndex != -1 {
+			if discoverySourceFieldIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 && discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
 				exists = true
 
-				err = MergeNodes(newNode.Content[0], discoverySourceNode, nil)
+				err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode, nil)
 				if err != nil {
 					return err
 				}
@@ -55,7 +62,7 @@ func setDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscove
 	if !exists {
 		result = append(result, newNode.Content[0])
 	}
-
+	discoverySourcesNode.Style = 0
 	discoverySourcesNode.Content = result
 
 	return nil
@@ -77,5 +84,4 @@ func getDiscoverySourceTypeAndName(discoverySource configapi.PluginDiscovery) (s
 	}
 
 	return "", ""
-
 }

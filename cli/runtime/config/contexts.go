@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,7 +32,10 @@ func SetContext(c *configapi.Context, setCurrent bool) error {
 	}
 
 	if setCurrent {
-		setCurrentContext(node, c)
+		err = setCurrentContext(node, c)
+		if err != nil {
+			return err
+		}
 	}
 
 	s := convertContextToServer(c)
@@ -40,7 +44,12 @@ func SetContext(c *configapi.Context, setCurrent bool) error {
 		return err
 	}
 
-	setCurrentServer(node, s.Name)
+	if setCurrent {
+		_, err = setCurrentServer(node, s.Name)
+		if err != nil {
+			return err
+		}
+	}
 
 	return PersistNode(node)
 
@@ -104,8 +113,14 @@ func SetCurrentContext(name string) error {
 		return err
 	}
 
-	setCurrentContext(node, ctx)
-	setCurrentServer(node, name)
+	err = setCurrentContext(node, ctx)
+	if err != nil {
+		return err
+	}
+	_, err = setCurrentServer(node, name)
+	if err != nil {
+		return err
+	}
 
 	return PersistNode(node)
 }
@@ -178,24 +193,28 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 	c.DiscoverySources = []configapi.PluginDiscovery{}
 	fmt.Println(copyOfDiscoverySources)
 
-	//convert context to node
+	//convert context to nodeutils
 	newContextNode, err := convertContextToNode(c)
 	if err != nil {
 		return err
 	}
 
-	contextsNode := FindParentNode(node, KeyContexts)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyContexts, Type: yaml.SequenceNode},
+		}
+	}
 
-	if contextsNode == nil {
-		//create context node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateSequenceNode(KeyContexts)...)
-		contextsNode = FindParentNode(node, KeyContexts)
+	contextsNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
 	}
 
 	exists := false
 	var result []*yaml.Node
 	for _, contextNode := range contextsNode.Content {
-		if index := getNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == c.Name {
+		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == c.Name {
 			exists = true
 
 			for _, discoverySource := range copyOfDiscoverySources {
@@ -205,7 +224,7 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 				}
 			}
 			//Merging
-			err = MergeNodes(newContextNode.Content[0], contextNode, nil)
+			err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode, nil)
 			if err != nil {
 				return err
 			}
@@ -225,65 +244,80 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 
 }
 
-func setCurrentContext(node *yaml.Node, ctx *configapi.Context) {
-	currentContextNode := FindParentNode(node, KeyCurrentContext)
+func setCurrentContext(node *yaml.Node, ctx *configapi.Context) error {
 
-	if currentContextNode == nil {
-		//create current context node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateMappingNode(KeyCurrentContext)...)
-		currentContextNode = FindParentNode(node, KeyCurrentContext)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyCurrentContext, Type: yaml.MappingNode},
+		}
 	}
 
-	if index := getNodeIndex(currentContextNode.Content, string(ctx.Type)); index != -1 {
+	currentContextNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
+	}
+
+	if index := nodeutils.GetNodeIndex(currentContextNode.Content, string(ctx.Type)); index != -1 {
 		currentContextNode.Content[index].Value = ctx.Name
 	} else {
-		currentContextNode.Content = append(currentContextNode.Content, CreateScalarNode(string(ctx.Type), ctx.Name)...)
+		currentContextNode.Content = append(currentContextNode.Content, nodeutils.CreateScalarNode(string(ctx.Type), ctx.Name)...)
 	}
+
+	return nil
 
 }
 
 func removeCurrentContext(node *yaml.Node, ctxType configapi.ContextType) (ok bool, err error) {
-	currentContextsNode := FindParentNode(node, KeyCurrentContext)
-	if currentContextsNode == nil {
+
+	configOptions := func(c *nodeutils.Config) {
+		c.Keys = []nodeutils.Key{
+			{Name: KeyCurrentContext},
+			{Name: string(ctxType)},
+		}
+	}
+
+	currentContextNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return false, err
+	}
+
+	if currentContextNode == nil {
 		return true, nil
 	}
 
-	var currentContexts []*yaml.Node
-	for _, contextNode := range currentContextsNode.Content {
-		if index := getNodeIndex(contextNode.Content, string(ctxType)); index != -1 {
-			continue
-		}
-		currentContexts = append(currentContexts, contextNode)
-	}
-
-	if len(currentContexts) != 0 {
-		currentContextsNode.Content = currentContexts
-	}
+	currentContextNode.Value = ""
 
 	return true, nil
 }
 
 func removeContext(node *yaml.Node, name string) (ok bool, err error) {
 
-	contextsNode := FindParentNode(node, KeyContexts)
+	configOptions := func(c *nodeutils.Config) {
+		c.Keys = []nodeutils.Key{
+			{Name: KeyContexts},
+		}
+	}
+
+	contextsNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+
+	if err != nil {
+		return false, err
+	}
 
 	if contextsNode == nil {
 		return true, nil
 	}
+
 	var contexts []*yaml.Node
 	for _, contextNode := range contextsNode.Content {
-		if index := getNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == name {
+		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == name {
 			continue
 		}
 		contexts = append(contexts, contextNode)
 	}
 
-	if len(contexts) == 0 {
-		contextsNode.Kind = yaml.ScalarNode
-		contextsNode.Tag = "!!seq"
-	} else {
-		contextsNode.Content = contexts
-	}
+	contextsNode.Content = contexts
 
 	return true, nil
 }

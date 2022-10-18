@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/pkg/errors"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -56,21 +57,35 @@ func getCLIRepository(node *yaml.Node, name string) (*configapi.PluginRepository
 }
 
 func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) error {
-	clientOptionsNode := FindParentNode(node, KeyClientOptions)
-	if clientOptionsNode == nil {
-		//create cliClientOptions node and add to root node
-		node.Content[0].Content = append(node.Content[0].Content, CreateMappingNode(KeyClientOptions)...)
-		clientOptionsNode = FindParentNode(node, KeyClientOptions)
+
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions, Type: yaml.MappingNode},
+			{Name: KeyCLI, Type: yaml.MappingNode},
+		}
 	}
 
-	cliNode := FindNode(clientOptionsNode, KeyCLI)
-	if cliNode == nil {
-		//create cli node and add to root node
-		clientOptionsNode.Content = append(clientOptionsNode.Content, CreateMappingNode(KeyCLI)...)
-		cliNode = FindNode(clientOptionsNode, KeyCLI)
+	cliNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
 	}
 
-	err := setRepository(cliNode, repository)
+	//clientOptionsNode := FindParentNode(nodeutils, KeyClientOptions)
+	//if clientOptionsNode == nil {
+	//	//create cliClientOptions nodeutils and add to root nodeutils
+	//	nodeutils.Content[0].Content = append(nodeutils.Content[0].Content, CreateMappingNode(KeyClientOptions)...)
+	//	clientOptionsNode = FindParentNode(nodeutils, KeyClientOptions)
+	//}
+	//
+	//cliNode := FindNode(clientOptionsNode, KeyCLI)
+	//if cliNode == nil {
+	//	//create cli nodeutils and add to root nodeutils
+	//	clientOptionsNode.Content = append(clientOptionsNode.Content, CreateMappingNode(KeyCLI)...)
+	//	cliNode = FindNode(clientOptionsNode, KeyCLI)
+	//}
+
+	err = setRepository(cliNode, repository)
 	if err != nil {
 		return err
 	}
@@ -100,12 +115,20 @@ func deleteCLIRepository(node *yaml.Node, name string) error {
 		return err
 	}
 
-	cliNode := FindParentSubNode(node, KeyClientOptions, KeyCLI)
-	if cliNode == nil {
-		return nil
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = false
+		c.Keys = []nodeutils.Key{
+			{Name: KeyClientOptions},
+			{Name: KeyCLI},
+			{Name: KeyRepositories},
+		}
 	}
 
-	cliRepositoriesNode := FindNode(cliNode, KeyRepositories)
+	cliRepositoriesNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
+	}
+
 	if cliRepositoriesNode == nil {
 		return nil
 	}
@@ -120,8 +143,8 @@ func deleteCLIRepository(node *yaml.Node, name string) error {
 
 		repositoryType, repositoryName := getRepositoryTypeAndName(*repository)
 
-		if repositoryIndex := getNodeIndex(repositoryNode.Content, repositoryType); repositoryIndex != -1 {
-			if repositoryFieldIndex := getNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
+		if repositoryIndex := nodeutils.GetNodeIndex(repositoryNode.Content, repositoryType); repositoryIndex != -1 {
+			if repositoryFieldIndex := nodeutils.GetNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
 				continue
 			}
 		} else {

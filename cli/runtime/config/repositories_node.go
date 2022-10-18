@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/pkg/errors"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -12,12 +13,24 @@ func setRepository(node *yaml.Node, repository configapi.PluginRepository) error
 		return err
 	}
 
-	i := getNodeIndex(node.Content, KeyRepositories)
-	if i == -1 {
-		node.Content = append(node.Content, CreateSequenceNode(KeyRepositories)...)
-		i = getNodeIndex(node.Content, KeyRepositories)
+	configOptions := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyRepositories, Type: yaml.SequenceNode},
+		}
 	}
-	repositoriesNode := node.Content[i]
+
+	repositoriesNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	if err != nil {
+		return err
+	}
+
+	//i := nodeutils.GetNodeIndex(node.Content, KeyRepositories)
+	//if i == -1 {
+	//	node.Content = append(node.Content, nodeutils.CreateSequenceNode(KeyRepositories)...)
+	//	i = nodeutils.GetNodeIndex(node.Content, KeyRepositories)
+	//}
+	//repositoriesNode := node.Content[i]
 
 	exists := false
 	var result []*yaml.Node
@@ -29,11 +42,11 @@ func setRepository(node *yaml.Node, repository configapi.PluginRepository) error
 			return errors.New("not found")
 		}
 
-		if repositoryIndex := getNodeIndex(repositoryNode.Content, repositoryType); repositoryIndex != -1 {
-			if repositoryFieldIndex := getNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
+		if repositoryIndex := nodeutils.GetNodeIndex(repositoryNode.Content, repositoryType); repositoryIndex != -1 {
+			if repositoryFieldIndex := nodeutils.GetNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
 				exists = true
 
-				err = MergeNodes(newNode.Content[0], repositoryNode, nil)
+				err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode, nil)
 				if err != nil {
 					return err
 				}

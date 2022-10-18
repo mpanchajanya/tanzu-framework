@@ -12,59 +12,15 @@ import (
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 )
 
-func setup(t *testing.T) {
-	LocalDirName = fmt.Sprintf(".tanzu-test")
-	//cfg := &v1alpha1.ClientConfig{
-	//	KnownContexts: []*v1alpha1.Context{
-	//		{
-	//			Name: "test-mc",
-	//			Type: "k8s",
-	//			ClusterOpts: &v1alpha1.ClusterServer{
-	//				Endpoint:            "test-endpoint",
-	//				Path:                "test-path",
-	//				Context:             "test-context",
-	//				IsManagementCluster: true,
-	//			},
-	//		},
-	//		{
-	//			Name: "test-tmc",
-	//			Type: "tmc",
-	//			GlobalOpts: &v1alpha1.GlobalServer{
-	//				Endpoint: "test-endpoint",
-	//			},
-	//		},
-	//	},
-	//	CurrentContext: map[string]string{
-	//		"k8s": "test-mc",
-	//		"tmc": "test-tmc",
-	//	},
-	//}
-	//
-	//AcquireTanzuConfigLock()
-	//defer ReleaseTanzuConfigLock()
-	//err := PersistConfig(cfg)
-	//require.NoError(t, err)
-}
-
-func setUpLocalDirName(t *testing.T) {
-	LocalDirName = fmt.Sprintf(".tanzu-test")
-}
-
-func setUpClientConfigWithNoContexts(t *testing.T) {
-	node, err := NewClientConfigNode()
-	require.NoError(t, err)
-	err = PersistNode(node)
-	require.NoError(t, err)
-}
-
-func cleanup() {
-	cleanupDir(LocalDirName)
-}
-
 func TestSetContextWithDiscoverySource(t *testing.T) {
-	setUpLocalDirName(t)
-	// setUpClientConfigWithNoContexts(t)
-	// cleanup()
+	// setup
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tests := []struct {
 		name    string
@@ -110,17 +66,13 @@ func TestSetContextWithDiscoverySource(t *testing.T) {
 			ok, err := ContextExists(tc.ctx.Name)
 			assert.True(t, ok)
 			assert.NoError(t, err)
-			//ok, err = ServerExists(tc.ctx.Name)
-			//assert.True(t, ok)
-			//assert.NoError(t, err)
 		})
 	}
 
 }
 
 func TestGetContext(t *testing.T) {
-	setup(t)
-	// defer cleanup()
+	setupForGetContext(t)
 
 	tcs := []struct {
 		name    string
@@ -158,9 +110,48 @@ func TestGetContext(t *testing.T) {
 	}
 }
 
+func setupForGetContext(t *testing.T) {
+	//setup
+	cfg := &v1alpha1.ClientConfig{
+		KnownContexts: []*v1alpha1.Context{
+			{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint",
+					Path:                "test-path",
+					Context:             "test-context",
+					IsManagementCluster: true,
+				},
+			},
+			{
+				Name: "test-tmc",
+				Type: "tmc",
+				GlobalOpts: &v1alpha1.GlobalServer{
+					Endpoint: "test-endpoint",
+				},
+			},
+		},
+		CurrentContext: map[v1alpha1.ContextType]string{
+			"k8s": "test-mc",
+			"tmc": "test-tmc",
+		},
+	}
+
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+		err := StoreClientConfig(cfg)
+		assert.NoError(t, err)
+	}()
+
+}
+
 func TestContextExists(t *testing.T) {
-	setup(t)
-	defer cleanup()
+	setupForGetContext(t)
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tcs := []struct {
 		name    string
@@ -193,8 +184,14 @@ func TestContextExists(t *testing.T) {
 }
 
 func TestSetContext(t *testing.T) {
-	setup(t)
-	//defer cleanup()
+	// setup
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tcs := []struct {
 		name    string
@@ -296,8 +293,12 @@ func TestSetContext(t *testing.T) {
 }
 
 func TestRemoveContext(t *testing.T) {
-	setup(t)
-	//defer cleanup()
+	// setup
+	setupForGetContext(t)
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tcs := []struct {
 		name    string
@@ -342,14 +343,17 @@ func TestRemoveContext(t *testing.T) {
 			assert.NoError(t, err)
 			ok, err = ServerExists(tc.ctxName)
 			assert.False(t, ok)
-			assert.NoError(t, err)
 		})
 	}
 }
 
 func TestSetCurrentContext(t *testing.T) {
-	setup(t)
-	//defer cleanup()
+	// setup
+	setupForGetContext(t)
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tcs := []struct {
 		name    string
