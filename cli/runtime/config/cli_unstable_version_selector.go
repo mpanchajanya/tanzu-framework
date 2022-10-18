@@ -26,6 +26,20 @@ func getUnstableVersionSelector(node *yaml.Node) (configapi.VersionSelectorLevel
 	}
 	return "", errors.New("unstable version selector not found")
 }
+func SetUnstableVersionSelector(name string) error {
+	node, err := GetClientConfigNode()
+	if err != nil {
+		return err
+	}
+
+	err = setUnstableVersionSelector(node, name)
+	if err != nil {
+		return err
+	}
+
+	return PersistNode(node)
+
+}
 
 func setUnstableVersionSelector(node *yaml.Node, name string) error {
 
@@ -42,7 +56,7 @@ func setUnstableVersionSelector(node *yaml.Node, name string) error {
 	if err != nil {
 		return err
 	}
-	unstableVersionSelectorNode.Content[0].Value = name
+	unstableVersionSelectorNode.Value = name
 
 	return nil
 

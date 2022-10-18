@@ -278,8 +278,8 @@ type GCPPluginRepository struct {
 
 // ClientConfig is the Schema for the configs API
 type ClientConfig struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:"typemeta,omitempty" yaml:"typemeta,omitempty" mapstructure:"typemeta,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty" mapstructure:"servers,omitempty"`
 	// KnownServers available.
 	// Deprecation targeted for a future version. Superseded by KnownContexts.
 	KnownServers []*Server `json:"servers,omitempty" yaml:"servers,omitempty" mapstructure:"servers,omitempty"`
