@@ -39,6 +39,7 @@ func GetClientConfigNodeNoLock() (*yaml.Node, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetClientConfigNodeNoLock: failed to construct struct from config data")
 	}
+	node.Content[0].Style = 0
 
 	return &node, nil
 }

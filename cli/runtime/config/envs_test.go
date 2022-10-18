@@ -140,6 +140,13 @@ func TestSetEnv(t *testing.T) {
 			},
 			out: "test2",
 		},
+		{
+			name: "success k8s",
+			src: &configapi.ClientConfig{
+				ClientOptions: &configapi.ClientOptions{},
+			},
+			out: "test2",
+		},
 	}
 
 	for _, spec := range tests {
@@ -196,6 +203,12 @@ func TestDeleteEnv(t *testing.T) {
 			in:   "test2",
 			out:  true,
 		},
+
+		{
+			name: "success delete test3",
+			in:   "test3",
+			out:  true,
+		},
 	}
 
 	for _, spec := range tests {
@@ -207,10 +220,7 @@ func TestDeleteEnv(t *testing.T) {
 			}
 
 			c, err := GetEnv(spec.in)
-
 			assert.Equal(t, spec.out, c == "")
-			assert.NoError(t, err)
-
 		})
 	}
 }

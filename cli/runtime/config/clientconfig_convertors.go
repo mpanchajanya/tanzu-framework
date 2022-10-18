@@ -13,7 +13,28 @@ func convertNodeToClientConfig(node *yaml.Node) (cfg *configapi.ClientConfig, er
 		return nil, errors.Wrap(err, "failed to decode nodeutils to client config")
 	}
 	return cfg, err
+}
 
+func convertNodeToMap(node *yaml.Node) (envs map[string]string, err error) {
+	err = node.Decode(&envs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode nodeutils to client config")
+	}
+	return envs, err
+}
+
+func convertMapToNode(envs map[string]string) (*yaml.Node, error) {
+	bytes, err := yaml.Marshal(envs)
+	if err != nil {
+		return nil, err
+	}
+	var node yaml.Node
+	err = yaml.Unmarshal(bytes, &node)
+	if err != nil {
+		return nil, err
+	}
+
+	return &node, nil
 }
 
 func convertClientConfigToNode(cfg *configapi.ClientConfig) (*yaml.Node, error) {

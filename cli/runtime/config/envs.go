@@ -67,7 +67,7 @@ func DeleteEnv(key string) error {
 		return err
 	}
 
-	return nil
+	return PersistNode(node)
 }
 
 func deleteEnv(node *yaml.Node, key string) (ok bool, err error) {
@@ -88,16 +88,21 @@ func deleteEnv(node *yaml.Node, key string) (ok bool, err error) {
 		return true, nil
 	}
 
-	var currentEnvs []*yaml.Node
-	for _, envNode := range envsNode.Content {
-
-		if index := nodeutils.GetNodeIndex(envsNode.Content, key); index != -1 {
-			continue
-		}
-		currentEnvs = append(currentEnvs, envNode)
+	envs, err := convertNodeToMap(envsNode)
+	if err != nil {
+		return false, err
 	}
 
-	envsNode.Content = currentEnvs
+	if _, ok := envs[key]; ok {
+		delete(envs, key)
+	}
+
+	newEnvsNode, err := convertMapToNode(envs)
+	if err != nil {
+		return false, err
+	}
+
+	envsNode.Content = newEnvsNode.Content[0].Content
 
 	return true, nil
 }
@@ -131,11 +136,20 @@ func setEnv(node *yaml.Node, key, value string) error {
 		return err
 	}
 
-	if index := nodeutils.GetNodeIndex(envsNode.Content, key); index != -1 {
-		envsNode.Content[index].Value = value
-	} else {
-		envsNode.Content = append(envsNode.Content, nodeutils.CreateScalarNode(key, value)...)
+	envs, err := convertNodeToMap(envsNode)
+	if err != nil {
+		return err
 	}
+
+	envs[key] = value
+
+	newEnvsNode, err := convertMapToNode(envs)
+	if err != nil {
+		return err
+	}
+
+	envsNode.Content = newEnvsNode.Content[0].Content
+
 	return nil
 }
 
