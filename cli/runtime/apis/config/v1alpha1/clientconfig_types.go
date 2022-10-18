@@ -38,7 +38,7 @@ type ConfigMetadata struct {
 }
 
 // Server connection.
-// Deprecation targeted for a a future version. Superseded by Context.
+// Deprecation targeted for a future version. Superseded by Context.
 type Server struct {
 	// Name of the server.
 	Name string `json:"name,omitempty" yaml:"name,omitempty" mapstructure:"name,omitempty"`
@@ -278,6 +278,8 @@ type GCPPluginRepository struct {
 
 // ClientConfig is the Schema for the configs API
 type ClientConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// KnownServers available.
 	// Deprecation targeted for a future version. Superseded by KnownContexts.
 	KnownServers []*Server `json:"servers,omitempty" yaml:"servers,omitempty" mapstructure:"servers,omitempty"`
@@ -295,4 +297,17 @@ type ClientConfig struct {
 	// ClientOptions are client specific options.
 	ClientOptions  *ClientOptions  `json:"clientOptions,omitempty" yaml:"clientOptions,omitempty" mapstructure:"clientOptions,omitempty"`
 	ConfigMetadata *ConfigMetadata `json:"configMetadata,omitempty" yaml:"configMetadata,omitempty" mapstructure:"configMetadata,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// ClientConfigList contains a list of ClientConfig
+type ClientConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ClientConfig `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&ClientConfig{}, &ClientConfigList{})
 }
