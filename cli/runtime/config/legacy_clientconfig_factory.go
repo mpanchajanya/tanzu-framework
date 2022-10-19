@@ -76,12 +76,21 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 		return err
 	}
 
-	_, err = setServers(node, cfg.KnownServers)
-	if err != nil {
-		return err
+	if cfg.Kind != "" {
+		err = setKind(node, cfg.Kind)
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = setContexts(node, cfg.KnownContexts)
+	if cfg.APIVersion != "" {
+		err = setApiVersion(node, cfg.APIVersion)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = setServers(node, cfg.KnownServers)
 	if err != nil {
 		return err
 	}
@@ -92,6 +101,11 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			return err
 		}
 
+	}
+
+	_, err = setContexts(node, cfg.KnownContexts)
+	if err != nil {
+		return err
 	}
 
 	if cfg.CurrentContext != nil {

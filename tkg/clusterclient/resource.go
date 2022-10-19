@@ -216,7 +216,7 @@ func VerifyMachinesReady(obj crtclient.ObjectList) error {
 	case *capi.MachineList:
 		errList := []error{}
 		// Checking all the machine have a NodeRef
-		// Nb. NodeRef is considered a better signal than InfrastructureReady, because it ensures the nodeutils in the workload cluster is up and running.
+		// Nb. NodeRef is considered a better signal than InfrastructureReady, because it ensures the node in the workload cluster is up and running.
 		for i := range machines.Items {
 			if machines.Items[i].Status.NodeRef == nil {
 				errList = append(errList, errors.Errorf("machine %s is still being provisioned", machines.Items[i].Name))

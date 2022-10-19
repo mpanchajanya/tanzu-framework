@@ -429,7 +429,7 @@ func globalLogin(s *configapi.Server) (err error) {
 
 	s.GlobalOpts.Auth = a
 
-	err = config.SetServer(s, true)
+	err = config.PutServer(s, true)
 	if err != nil {
 		return err
 	}
@@ -478,7 +478,7 @@ func managementClusterLogin(s *configapi.Server) error {
 			log.Fatalf("failed to login to the management cluster %s, %v", s.Name, err)
 			return err
 		}
-		err = config.SetServer(s, true)
+		err = config.PutServer(s, true)
 		if err != nil {
 			return err
 		}

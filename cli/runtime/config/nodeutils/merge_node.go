@@ -1,7 +1,6 @@
 package nodeutils
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -32,18 +31,10 @@ func MergeNodes(src, dst *yaml.Node, replaceStrategy func(string) bool) error {
 	switch src.Kind {
 	case yaml.MappingNode:
 		for i := 0; i < len(src.Content); i += 2 {
-			fieldPath := src.Content[i].Value
 			found := false
 			for j := 0; j < len(dst.Content); j += 2 {
 				if ok, _ := EqualNodes(src.Content[i], dst.Content[j]); ok {
 					found = true
-					fmt.Printf("Merginggg......%v - %v\n", src.Content[i].Value, dst.Content[j].Value)
-					fmt.Println(fieldPath)
-					//if replaceStrategy(src.Content[i].Value) {
-					//	dst.Content[j+1] = src.Content[i+1]
-					//	continue
-					//}
-
 					if err := MergeNodes(src.Content[i+1], dst.Content[j+1], replaceStrategy); err != nil {
 						return errors.New("at key " + src.Content[i].Value + ": " + err.Error())
 					}
@@ -51,8 +42,6 @@ func MergeNodes(src, dst *yaml.Node, replaceStrategy func(string) bool) error {
 				}
 			}
 			if !found {
-				fmt.Printf("Not Found Merginggg......%v\n", src.Content[i:i+2])
-				fmt.Println(fieldPath)
 				dst.Content = append(dst.Content, src.Content[i:i+2]...)
 			}
 		}

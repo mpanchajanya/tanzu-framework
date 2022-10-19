@@ -13,4 +13,6 @@ const (
 	KeyRepositories            = "repositories"
 	KeyUnstableVersionSelector = "unstableVersionSelector"
 	KeyEdition                 = "edition"
+	KeyKind                    = "kind"
+	KeyApiVersion              = "apiVersion"
 )

@@ -78,9 +78,7 @@ func deleteFeature(node *yaml.Node, plugin, key string) error {
 		currentPluginFeatures = append(currentPluginFeatures, pluginFeatureNode)
 	}
 
-	if len(currentPluginFeatures) != 0 {
-		pluginNode.Content = currentPluginFeatures
-	}
+	pluginNode.Content = currentPluginFeatures
 
 	return nil
 }
