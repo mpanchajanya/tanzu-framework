@@ -249,7 +249,7 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 				}
 			}
 			//Merging
-			err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode, nil)
+			err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
 			if err != nil {
 				return err
 			}

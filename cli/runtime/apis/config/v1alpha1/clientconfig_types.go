@@ -33,10 +33,6 @@ const (
 	CtxTypeTMC ContextType = "tmc"
 )
 
-type ConfigMetadata struct {
-	PatchStrategy map[string]string `json:"patchStrategy,omitempty" yaml:"patchStrategy,omitempty" mapstructure:"patchStrategy,omitempty"`
-}
-
 // Server connection.
 // Deprecation targeted for a future version. Superseded by Context.
 type Server struct {
@@ -296,8 +292,7 @@ type ClientConfig struct {
 	CurrentContext map[ContextType]string `json:"currentContext,omitempty" yaml:"currentContext,omitempty" mapstructure:"currentContext,omitempty"`
 
 	// ClientOptions are client specific options.
-	ClientOptions  *ClientOptions  `json:"clientOptions,omitempty" yaml:"clientOptions,omitempty" mapstructure:"clientOptions,omitempty"`
-	ConfigMetadata *ConfigMetadata `json:"configMetadata,omitempty" yaml:"configMetadata,omitempty" mapstructure:"configMetadata,omitempty"`
+	ClientOptions *ClientOptions `json:"clientOptions,omitempty" yaml:"clientOptions,omitempty" mapstructure:"clientOptions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

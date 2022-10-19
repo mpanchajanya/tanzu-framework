@@ -40,7 +40,7 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 			if discoverySourceFieldIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 && discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
 				exists = true
 
-				err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode, nil)
+				err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode)
 				if err != nil {
 					return err
 				}

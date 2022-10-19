@@ -19,7 +19,7 @@ func EqualNodes(left, right *yaml.Node) (bool, error) {
 	return false, errors.New("equals on non-scalars not implemented!")
 }
 
-func MergeNodes(src, dst *yaml.Node, replaceStrategy func(string) bool) error {
+func MergeNodes(src, dst *yaml.Node) error {
 	if src.Kind != dst.Kind {
 		return ErrDifferentArgumentsTypes
 	}
@@ -35,7 +35,7 @@ func MergeNodes(src, dst *yaml.Node, replaceStrategy func(string) bool) error {
 			for j := 0; j < len(dst.Content); j += 2 {
 				if ok, _ := EqualNodes(src.Content[i], dst.Content[j]); ok {
 					found = true
-					if err := MergeNodes(src.Content[i+1], dst.Content[j+1], replaceStrategy); err != nil {
+					if err := MergeNodes(src.Content[i+1], dst.Content[j+1]); err != nil {
 						return errors.New("at key " + src.Content[i].Value + ": " + err.Error())
 					}
 					break
@@ -48,7 +48,7 @@ func MergeNodes(src, dst *yaml.Node, replaceStrategy func(string) bool) error {
 	case yaml.SequenceNode:
 		dst.Content = append(dst.Content, src.Content...)
 	case yaml.DocumentNode:
-		err := MergeNodes(src.Content[0], dst.Content[0], replaceStrategy)
+		err := MergeNodes(src.Content[0], dst.Content[0])
 		if err != nil {
 			errors.New("at key " + src.Content[0].Value + ": " + err.Error())
 		}

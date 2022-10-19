@@ -385,7 +385,7 @@ func setServer(node *yaml.Node, s *configapi.Server) error {
 				}
 			}
 
-			err = nodeutils.MergeNodes(newNode.Content[0], serverNode, nil)
+			err = nodeutils.MergeNodes(newNode.Content[0], serverNode)
 			if err != nil {
 				return err
 			}

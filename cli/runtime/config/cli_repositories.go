@@ -56,6 +56,20 @@ func getCLIRepository(node *yaml.Node, name string) (*configapi.PluginRepository
 	return nil, errors.New("cli repository not found")
 }
 
+func SetCLIRepository(repository configapi.PluginRepository) error {
+	node, err := GetClientConfigNode()
+	if err != nil {
+		return err
+	}
+
+	err = setCLIRepository(node, repository)
+	if err != nil {
+		return err
+	}
+
+	return PersistNode(node)
+}
+
 func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) error {
 
 	configOptions := func(c *nodeutils.Config) {
@@ -63,20 +77,16 @@ func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) er
 		c.Keys = []nodeutils.Key{
 			{Name: KeyClientOptions, Type: yaml.MappingNode},
 			{Name: KeyCLI, Type: yaml.MappingNode},
+			{Name: KeyRepositories, Type: yaml.SequenceNode},
 		}
 	}
 
-	cliNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	repositoriesNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
 		return err
 	}
 
-	err = setRepository(cliNode, repository)
-	if err != nil {
-		return err
-	}
-
-	return PersistNode(node)
+	return setRepository(repositoriesNode, repository)
 
 }
 

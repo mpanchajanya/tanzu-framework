@@ -7,20 +7,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func setRepository(node *yaml.Node, repository configapi.PluginRepository) error {
+func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository) error {
 	newNode, err := convertToNode[configapi.PluginRepository](&repository)
-	if err != nil {
-		return err
-	}
-
-	configOptions := func(c *nodeutils.Config) {
-		c.ForceCreate = true
-		c.Keys = []nodeutils.Key{
-			{Name: KeyRepositories, Type: yaml.SequenceNode},
-		}
-	}
-
-	repositoriesNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
 		return err
 	}
@@ -39,7 +27,7 @@ func setRepository(node *yaml.Node, repository configapi.PluginRepository) error
 			if repositoryFieldIndex := nodeutils.GetNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
 				exists = true
 
-				err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode, nil)
+				err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode)
 				if err != nil {
 					return err
 				}
@@ -61,7 +49,7 @@ func setRepository(node *yaml.Node, repository configapi.PluginRepository) error
 
 func getRepositoryTypeAndName(repository configapi.PluginRepository) (string, string) {
 
-	if repository.GCPPluginRepository != nil || repository.GCPPluginRepository.Name != "" {
+	if repository.GCPPluginRepository != nil && repository.GCPPluginRepository.Name != "" {
 		return "gcpPluginRepository", repository.GCPPluginRepository.Name
 	}
 	return "", ""
