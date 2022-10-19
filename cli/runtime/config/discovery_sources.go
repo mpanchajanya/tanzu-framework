@@ -45,9 +45,12 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 					return err
 				}
 				result = append(result, discoverySourceNode)
+			} else {
+				result = append(result, discoverySourceNode)
 			}
+		} else {
+			result = append(result, discoverySourceNode)
 		}
-
 	}
 
 	if !exists {

@@ -144,6 +144,85 @@ func TestGetCLIDiscoverySource(t *testing.T) {
 	}
 }
 
+func TestSetCLIDiscoverySourceLocalMulti(t *testing.T) {
+	// setup
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
+
+	src := &configapi.ClientConfig{
+		ClientOptions: &configapi.ClientOptions{
+			CLI: &configapi.CLIOptions{},
+		},
+	}
+
+	input := v1alpha1.PluginDiscovery{
+		Local: &v1alpha1.LocalDiscovery{
+			Name: "admin-local",
+			Path: "admin",
+		},
+	}
+
+	input2 := v1alpha1.PluginDiscovery{
+		Local: &v1alpha1.LocalDiscovery{
+			Name: "default-local",
+			Path: "standalone",
+		},
+		ContextType: "k8s",
+	}
+
+	updateInput2 := v1alpha1.PluginDiscovery{
+		Local: &v1alpha1.LocalDiscovery{
+			Name: "default-local",
+			Path: "standalone-updated",
+		},
+		ContextType: "k8s",
+	}
+	err := StoreClientConfig(src)
+	if err != nil {
+		fmt.Printf("StoreClientConfigV2 errors: %v\n", err)
+	}
+
+	err = SetCLIDiscoverySource(input)
+	assert.NoError(t, err)
+
+	c, err := GetCLIDiscoverySource("admin-local")
+	if err != nil {
+		fmt.Printf("errors: %v\n", err)
+	}
+
+	assert.Equal(t, input.Local, c.Local)
+	assert.NoError(t, err)
+
+	err = SetCLIDiscoverySource(input2)
+	assert.NoError(t, err)
+
+	c, err = GetCLIDiscoverySource("default-local")
+	if err != nil {
+		fmt.Printf("errors: %v\n", err)
+	}
+
+	assert.Equal(t, input2.Local, c.Local)
+	assert.NoError(t, err)
+
+	//Update Input2
+	err = SetCLIDiscoverySource(updateInput2)
+	assert.NoError(t, err)
+
+	c, err = GetCLIDiscoverySource("default-local")
+	if err != nil {
+		fmt.Printf("errors: %v\n", err)
+	}
+
+	assert.Equal(t, updateInput2.Local, c.Local)
+	assert.NoError(t, err)
+
+}
+
 func TestSetCLIDiscoverySource(t *testing.T) {
 
 	// setup
