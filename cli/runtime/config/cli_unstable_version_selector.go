@@ -16,7 +16,7 @@ func GetUnstableVersionSelector() (configapi.VersionSelectorLevel, error) {
 }
 
 func getUnstableVersionSelector(node *yaml.Node) (configapi.VersionSelectorLevel, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return "", err
 	}

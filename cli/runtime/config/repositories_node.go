@@ -8,7 +8,7 @@ import (
 )
 
 func setRepository(node *yaml.Node, repository configapi.PluginRepository) error {
-	newNode, err := convertRepositoryToNode(&repository)
+	newNode, err := convertToNode[configapi.PluginRepository](&repository)
 	if err != nil {
 		return err
 	}
@@ -24,13 +24,6 @@ func setRepository(node *yaml.Node, repository configapi.PluginRepository) error
 	if err != nil {
 		return err
 	}
-
-	//i := nodeutils.GetNodeIndex(node.Content, KeyRepositories)
-	//if i == -1 {
-	//	node.Content = append(node.Content, nodeutils.CreateSequenceNode(KeyRepositories)...)
-	//	i = nodeutils.GetNodeIndex(node.Content, KeyRepositories)
-	//}
-	//repositoriesNode := node.Content[i]
 
 	exists := false
 	var result []*yaml.Node

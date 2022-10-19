@@ -258,7 +258,8 @@ func setCurrentServer(node *yaml.Node, name string) (bool, error) {
 }
 
 func getServer(node *yaml.Node, name string) (*configapi.Server, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
+
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +275,7 @@ func getServer(node *yaml.Node, name string) (*configapi.Server, error) {
 }
 
 func getCurrentServer(node *yaml.Node) (s *configapi.Server, err error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +355,7 @@ func setServer(node *yaml.Node, s *configapi.Server) error {
 	fmt.Println(copyOfDiscoverySources)
 
 	//convert server to nodeutils
-	newNode, err := convertServerToNode(s)
+	newNode, err := convertToNode[configapi.Server](s)
 	if err != nil {
 		return err
 	}

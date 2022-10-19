@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/pkg/errors"
+	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 
 	"gopkg.in/yaml.v3"
@@ -18,7 +19,7 @@ func GetAllEnvs() (map[string]string, error) {
 }
 
 func getAllEnvs(node *yaml.Node) (map[string]string, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func GetEnv(key string) (string, error) {
 }
 
 func getEnv(node *yaml.Node, key string) (string, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return "", err
 	}

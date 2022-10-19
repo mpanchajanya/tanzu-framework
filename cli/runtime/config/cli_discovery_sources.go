@@ -12,7 +12,6 @@ func GetCLIDiscoverySources() ([]configapi.PluginDiscovery, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return getCLIDiscoverySources(node)
 }
 
@@ -21,7 +20,6 @@ func GetCLIDiscoverySource(name string) (*configapi.PluginDiscovery, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return getCLIDiscoverySource(node, name)
 }
 
@@ -30,38 +28,27 @@ func SetCLIDiscoverySource(discoverySource configapi.PluginDiscovery) error {
 	if err != nil {
 		return err
 	}
-
 	err = setCLIDiscoverySource(node, discoverySource)
 	if err != nil {
 		return err
 	}
 	return PersistNode(node)
-
 }
 
-func DeleteCLIDiscoverySource(name string) (ok bool, err error) {
+func DeleteCLIDiscoverySource(name string) error {
 	node, err := GetClientConfigNode()
 	if err != nil {
-		return false, err
+		return err
 	}
-
 	err = deleteCLIDiscoverySource(node, name)
 	if err != nil {
-		return false, err
+		return err
 	}
-
-	err = PersistNode(node)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-
+	return PersistNode(node)
 }
 
 func getCLIDiscoverySources(node *yaml.Node) ([]configapi.PluginDiscovery, error) {
-
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -75,26 +62,19 @@ func getCLIDiscoverySources(node *yaml.Node) ([]configapi.PluginDiscovery, error
 }
 
 func getCLIDiscoverySource(node *yaml.Node, name string) (*configapi.PluginDiscovery, error) {
-
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
-
 	if cfg.ClientOptions != nil && cfg.ClientOptions.CLI != nil && cfg.ClientOptions.CLI.DiscoverySources != nil {
-
 		for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
 			_, discoverySourceName := getDiscoverySourceTypeAndName(discoverySource)
-
 			if discoverySourceName == name {
 				return &discoverySource, nil
 			}
-
 		}
 	}
-
 	return nil, errors.New("cli discovery source not found")
-
 }
 
 func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscovery) error {

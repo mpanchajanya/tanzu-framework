@@ -17,7 +17,7 @@ func GetCLIRepositories() ([]configapi.PluginRepository, error) {
 }
 
 func getCLIRepositories(node *yaml.Node) ([]configapi.PluginRepository, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func GetCLIRepository(name string) (*configapi.PluginRepository, error) {
 }
 
 func getCLIRepository(node *yaml.Node, name string) (*configapi.PluginRepository, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -70,20 +70,6 @@ func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) er
 	if err != nil {
 		return err
 	}
-
-	//clientOptionsNode := FindParentNode(nodeutils, KeyClientOptions)
-	//if clientOptionsNode == nil {
-	//	//create cliClientOptions nodeutils and add to root nodeutils
-	//	nodeutils.Content[0].Content = append(nodeutils.Content[0].Content, CreateMappingNode(KeyClientOptions)...)
-	//	clientOptionsNode = FindParentNode(nodeutils, KeyClientOptions)
-	//}
-	//
-	//cliNode := FindNode(clientOptionsNode, KeyCLI)
-	//if cliNode == nil {
-	//	//create cli nodeutils and add to root nodeutils
-	//	clientOptionsNode.Content = append(clientOptionsNode.Content, CreateMappingNode(KeyCLI)...)
-	//	cliNode = FindNode(clientOptionsNode, KeyCLI)
-	//}
 
 	err = setRepository(cliNode, repository)
 	if err != nil {
@@ -153,12 +139,8 @@ func deleteCLIRepository(node *yaml.Node, name string) error {
 
 	}
 
-	if len(result) == 0 {
-		cliRepositoriesNode.Kind = yaml.ScalarNode
-		cliRepositoriesNode.Tag = "!!seq"
-	} else {
-		cliRepositoriesNode.Content = result
-	}
+	cliRepositoriesNode.Style = 0
+	cliRepositoriesNode.Content = result
 
 	return nil
 

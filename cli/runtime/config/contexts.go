@@ -20,19 +20,6 @@ func GetContext(name string) (*configapi.Context, error) {
 	return getContext(node, name)
 }
 
-//func patchStrategy(node *yaml.Node) func(key string) bool {
-//
-//	return func(key string) bool {
-//		keyPath := fmt.Sprintf("contexts.%v", key)
-//		replace, err := ShouldReplace(node, keyPath)
-//		if err != nil {
-//			return false
-//		}
-//		return replace
-//	}
-//
-//}
-
 //Deprecated:- Use SetContext
 func AddContext(c *configapi.Context, setCurrent bool) error {
 	return SetContext(c, setCurrent)
@@ -181,7 +168,7 @@ func EndpointFromContext(s *configapi.Context) (endpoint string, err error) {
 
 func getContext(node *yaml.Node, name string) (*configapi.Context, error) {
 
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +183,7 @@ func getContext(node *yaml.Node, name string) (*configapi.Context, error) {
 }
 
 func getCurrentContext(node *yaml.Node, ctxType configapi.ContextType) (*configapi.Context, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +207,7 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 	c.DiscoverySources = []configapi.PluginDiscovery{}
 
 	//convert context to node
-	newContextNode, err := convertContextToNode(c)
+	newContextNode, err := convertToNode[configapi.Context](c)
 	if err != nil {
 		return err
 	}

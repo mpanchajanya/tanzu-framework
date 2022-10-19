@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,7 +46,7 @@ func GetClientConfigNodeNoLock() (*yaml.Node, error) {
 
 func NewClientConfigNode() (*yaml.Node, error) {
 	c := newClientConfig()
-	node, err := convertClientConfigToNode(c)
+	node, err := convertToNode[configapi.ClientConfig](c)
 	node.Content[0].Style = 0
 	if err != nil {
 		return nil, err

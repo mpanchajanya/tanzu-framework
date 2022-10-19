@@ -1,6 +1,7 @@
 package config
 
 import (
+	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
@@ -48,7 +49,7 @@ func setEdition(node *yaml.Node, val string) error {
 }
 
 func getEdition(node *yaml.Node) (string, error) {
-	cfg, err := convertNodeToClientConfig(node)
+	cfg, err := convertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return "", err
 	}

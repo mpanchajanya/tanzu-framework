@@ -303,9 +303,8 @@ func TestDeleteCLIDiscoverySource(t *testing.T) {
 				fmt.Printf("StoreClientConfigV2 errors: %v\n", err)
 			}
 
-			ok, err := DeleteCLIDiscoverySource(spec.input)
+			err = DeleteCLIDiscoverySource(spec.input)
 
-			assert.Equal(t, spec.deleted, ok)
 			assert.NoError(t, err)
 
 		})
@@ -362,8 +361,7 @@ func TestIntegrationSetGetDeleteCLIDiscoverySource(t *testing.T) {
 			assert.Equal(t, spec.src.ClientOptions.CLI.DiscoverySources[0].GCP, ds.GCP)
 			assert.NoError(t, err)
 
-			ok, err := DeleteCLIDiscoverySource(spec.input)
-			assert.Equal(t, spec.deleted, ok)
+			err = DeleteCLIDiscoverySource(spec.input)
 			assert.NoError(t, err)
 
 			err = SetCLIDiscoverySource(spec.src.ClientOptions.CLI.DiscoverySources[0])
