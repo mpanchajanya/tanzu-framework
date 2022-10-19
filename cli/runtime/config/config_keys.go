@@ -15,4 +15,6 @@ const (
 	KeyEdition                 = "edition"
 	KeyKind                    = "kind"
 	KeyApiVersion              = "apiVersion"
+	KeyBomRepo                 = "bomRepo"
+	KeyCompatibilityFilePath   = "compatibilityFilePath"
 )

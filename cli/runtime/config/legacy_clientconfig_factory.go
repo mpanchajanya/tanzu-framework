@@ -45,7 +45,7 @@ func GetClientConfigNoLock() (cfg *configapi.ClientConfig, err error) {
 	}
 
 	b, err := os.ReadFile(cfgPath)
-	if err != nil {
+	if err != nil || len(b) == 0 {
 		fmt.Errorf("failed to read in config: %v\n", err)
 		cfg = NewClientConfig()
 
@@ -145,6 +145,24 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 		if cfg.ClientOptions.CLI != nil {
 
+			if cfg.ClientOptions.CLI.Repositories != nil && len(cfg.ClientOptions.CLI.Repositories) != 0 {
+				for _, repository := range cfg.ClientOptions.CLI.Repositories {
+					err = setCLIRepository(node, repository)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			if cfg.ClientOptions.CLI.DiscoverySources != nil && len(cfg.ClientOptions.CLI.DiscoverySources) != 0 {
+				for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
+					err = setCLIDiscoverySource(node, discoverySource)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			if cfg.ClientOptions.CLI.UnstableVersionSelector != "" {
 				err = setUnstableVersionSelector(node, string(cfg.ClientOptions.CLI.UnstableVersionSelector))
 				if err != nil {
@@ -161,22 +179,20 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 			}
 
-			if cfg.ClientOptions.CLI.DiscoverySources != nil && len(cfg.ClientOptions.CLI.DiscoverySources) != 0 {
-				for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
-					err = setCLIDiscoverySource(node, discoverySource)
-					if err != nil {
-						return err
-					}
+			if cfg.ClientOptions.CLI.BOMRepo != "" {
+				err = setBomRepo(node, string(cfg.ClientOptions.CLI.BOMRepo))
+				if err != nil {
+					return err
 				}
+
 			}
 
-			if cfg.ClientOptions.CLI.Repositories != nil && len(cfg.ClientOptions.CLI.Repositories) != 0 {
-				for _, repository := range cfg.ClientOptions.CLI.Repositories {
-					err = setCLIRepository(node, repository)
-					if err != nil {
-						return err
-					}
+			if cfg.ClientOptions.CLI.CompatibilityFilePath != "" {
+				err = setCompatibilityFilePath(node, string(cfg.ClientOptions.CLI.CompatibilityFilePath))
+				if err != nil {
+					return err
 				}
+
 			}
 
 		}
