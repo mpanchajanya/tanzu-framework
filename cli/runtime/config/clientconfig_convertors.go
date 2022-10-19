@@ -46,7 +46,7 @@ func convertMapToNode(envs map[string]string) (*yaml.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	node.Tag = "!!str"
 	node.Style = 0
+	node.Content[0].Style = 0
 	return &node, nil
 }

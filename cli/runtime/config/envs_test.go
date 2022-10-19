@@ -177,6 +177,8 @@ func TestDeleteEnv(t *testing.T) {
 				Env: map[string]string{
 					"test":  "test",
 					"test2": "test2",
+					"test3": "test2",
+					"test4": "test2",
 				},
 			},
 		}

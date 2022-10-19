@@ -52,7 +52,13 @@ func DeleteFeature(plugin, key string) error {
 		return err
 	}
 
-	return deleteFeature(node, plugin, key)
+	err = deleteFeature(node, plugin, key)
+	if err != nil {
+		return err
+	}
+
+	return PersistNode(node)
+
 }
 
 func deleteFeature(node *yaml.Node, plugin, key string) error {
@@ -70,15 +76,25 @@ func deleteFeature(node *yaml.Node, plugin, key string) error {
 		return err
 	}
 
-	var currentPluginFeatures []*yaml.Node
-	for _, pluginFeatureNode := range pluginNode.Content {
-		if index := nodeutils.GetNodeIndex(pluginFeatureNode.Content, key); index != -1 {
-			continue
-		}
-		currentPluginFeatures = append(currentPluginFeatures, pluginFeatureNode)
+	if pluginNode == nil {
+		return nil
 	}
 
-	pluginNode.Content = currentPluginFeatures
+	plugins, err := convertNodeToMap(pluginNode)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := plugins[key]; ok {
+		delete(plugins, key)
+	}
+
+	newPluginsNode, err := convertMapToNode(plugins)
+	if err != nil {
+		return err
+	}
+
+	pluginNode.Content = newPluginsNode.Content[0].Content
 
 	return nil
 }
