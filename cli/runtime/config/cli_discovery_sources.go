@@ -83,15 +83,16 @@ func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDisc
 		c.Keys = []nodeutils.Key{
 			{Name: KeyClientOptions, Type: yaml.MappingNode},
 			{Name: KeyCLI, Type: yaml.MappingNode},
+			{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
 		}
 	}
 
-	cliNode, err := nodeutils.FindNode(node.Content[0], configOptions)
+	discoverySourcesNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
 		return err
 	}
 
-	err = setDiscoverySource(cliNode, discoverySource)
+	err = setDiscoverySource(discoverySourcesNode, discoverySource)
 	if err != nil {
 		return err
 	}

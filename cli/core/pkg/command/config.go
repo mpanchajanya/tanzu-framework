@@ -383,7 +383,7 @@ func unsetFeatures(cfg *configapi.ClientConfig, paramArray []string) error {
 		cfg.ClientOptions.Features[plugin] == nil {
 		return nil
 	}
-	delete(cfg.ClientOptions.Features[plugin], featureName)
+	cfg.ClientOptions.Features[plugin][featureName] = "false"
 	return nil
 }
 
@@ -396,7 +396,7 @@ func unsetEnvs(cfg *configapi.ClientConfig, paramArray []string) error {
 	if cfg.ClientOptions == nil || cfg.ClientOptions.Env == nil {
 		return nil
 	}
-	delete(cfg.ClientOptions.Env, envVariable)
+	cfg.ClientOptions.Env[envVariable] = ""
 
 	return nil
 }

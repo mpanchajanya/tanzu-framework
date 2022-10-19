@@ -230,8 +230,20 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == c.Name {
 			exists = true
 
+			configOptions := func(c *nodeutils.Config) {
+				c.ForceCreate = true
+				c.Keys = []nodeutils.Key{
+					{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
+				}
+			}
+
+			discoverySourcesNode, err := nodeutils.FindNode(node, configOptions)
+			if err != nil {
+				return err
+			}
+
 			for _, discoverySource := range copyOfDiscoverySources {
-				err := setDiscoverySource(contextNode, discoverySource)
+				err = setDiscoverySource(discoverySourcesNode, discoverySource)
 				if err != nil {
 					return err
 				}

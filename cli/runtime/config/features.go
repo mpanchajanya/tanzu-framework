@@ -89,7 +89,12 @@ func SetFeature(plugin, key, value string) error {
 		return err
 	}
 
-	return setFeature(node, plugin, key, value)
+	err = setFeature(node, plugin, key, value)
+	if err != nil {
+		return err
+	}
+
+	return PersistNode(node)
 }
 
 func setFeature(node *yaml.Node, plugin, key, value string) error {
@@ -109,6 +114,7 @@ func setFeature(node *yaml.Node, plugin, key, value string) error {
 	}
 
 	if index := nodeutils.GetNodeIndex(pluginNode.Content, key); index != -1 {
+		pluginNode.Content[index].Tag = "!!str"
 		pluginNode.Content[index].Value = value
 	} else {
 		pluginNode.Content = append(pluginNode.Content, nodeutils.CreateScalarNode(key, value)...)

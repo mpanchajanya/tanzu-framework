@@ -16,20 +16,11 @@ const (
 	DiscoveryTypeREST       = "rest"
 )
 
-func setDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscovery) error {
+func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery) error {
 	newNode, err := convertToNode[configapi.PluginDiscovery](&discoverySource)
 	if err != nil {
 		return err
 	}
-
-	configOptions := func(c *nodeutils.Config) {
-		c.ForceCreate = true
-		c.Keys = []nodeutils.Key{
-			{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
-		}
-	}
-
-	discoverySourcesNode, err := nodeutils.FindNode(node, configOptions)
 
 	if err != nil {
 		return err

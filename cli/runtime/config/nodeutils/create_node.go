@@ -35,11 +35,13 @@ func CreateScalarNode(key, value string) []*yaml.Node {
 		Kind:  yaml.ScalarNode,
 		Value: key,
 		Style: 0,
+		Tag:   "!!str",
 	}
 	valueNode := &yaml.Node{
 		Kind:  yaml.ScalarNode,
 		Value: value,
 		Style: 0,
+		Tag:   "!!str",
 	}
 
 	return []*yaml.Node{keyNode, valueNode}
