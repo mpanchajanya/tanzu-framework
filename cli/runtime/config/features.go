@@ -30,7 +30,7 @@ func IsFeatureEnabled(plugin, key string) (bool, error) {
 }
 
 func getFeature(node *yaml.Node, plugin, key string) (string, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +80,7 @@ func deleteFeature(node *yaml.Node, plugin, key string) error {
 		return nil
 	}
 
-	plugins, err := convertNodeToMap(pluginNode)
+	plugins, err := nodeutils.ConvertNodeToMap(pluginNode)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func deleteFeature(node *yaml.Node, plugin, key string) error {
 		delete(plugins, key)
 	}
 
-	newPluginsNode, err := convertMapToNode(plugins)
+	newPluginsNode, err := nodeutils.ConvertMapToNode(plugins)
 	if err != nil {
 		return err
 	}

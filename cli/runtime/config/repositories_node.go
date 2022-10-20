@@ -8,7 +8,7 @@ import (
 )
 
 func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository) error {
-	newNode, err := convertToNode[configapi.PluginRepository](&repository)
+	newNode, err := nodeutils.ConvertToNode[configapi.PluginRepository](&repository)
 	if err != nil {
 		return err
 	}

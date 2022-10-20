@@ -17,7 +17,7 @@ const (
 )
 
 func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery) error {
-	newNode, err := convertToNode[configapi.PluginDiscovery](&discoverySource)
+	newNode, err := nodeutils.ConvertToNode[configapi.PluginDiscovery](&discoverySource)
 	if err != nil {
 		return err
 	}

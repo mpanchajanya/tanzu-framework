@@ -17,7 +17,7 @@ func GetCLIRepositories() ([]configapi.PluginRepository, error) {
 }
 
 func getCLIRepositories(node *yaml.Node) ([]configapi.PluginRepository, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func GetCLIRepository(name string) (*configapi.PluginRepository, error) {
 }
 
 func getCLIRepository(node *yaml.Node, name string) (*configapi.PluginRepository, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}

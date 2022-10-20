@@ -17,7 +17,7 @@ import (
 const (
 	LocalTanzuFileLock = ".tanzu.lock"
 	// DefaultLockTimeout is the default time waiting on the filelock
-	DefaultLockTimeout = 1 * time.Minute
+	DefaultLockTimeout = 10 * time.Minute
 )
 
 var tanzuConfigLockFile string

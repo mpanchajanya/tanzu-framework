@@ -48,7 +48,7 @@ func DeleteCLIDiscoverySource(name string) error {
 }
 
 func getCLIDiscoverySources(node *yaml.Node) ([]configapi.PluginDiscovery, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func getCLIDiscoverySources(node *yaml.Node) ([]configapi.PluginDiscovery, error
 }
 
 func getCLIDiscoverySource(node *yaml.Node, name string) (*configapi.PluginDiscovery, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}

@@ -168,7 +168,7 @@ func EndpointFromContext(s *configapi.Context) (endpoint string, err error) {
 
 func getContext(node *yaml.Node, name string) (*configapi.Context, error) {
 
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func getContext(node *yaml.Node, name string) (*configapi.Context, error) {
 }
 
 func getCurrentContext(node *yaml.Node, ctxType configapi.ContextType) (*configapi.Context, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 	c.DiscoverySources = []configapi.PluginDiscovery{}
 
 	//convert context to node
-	newContextNode, err := convertToNode[configapi.Context](c)
+	newContextNode, err := nodeutils.ConvertToNode[configapi.Context](c)
 	if err != nil {
 		return err
 	}

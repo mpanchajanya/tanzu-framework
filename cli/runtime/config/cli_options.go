@@ -49,7 +49,7 @@ func setEdition(node *yaml.Node, val string) error {
 }
 
 func getEdition(node *yaml.Node) (string, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return "", err
 	}

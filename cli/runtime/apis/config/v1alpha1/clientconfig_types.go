@@ -292,7 +292,12 @@ type ClientConfig struct {
 	CurrentContext map[ContextType]string `json:"currentContext,omitempty" yaml:"currentContext,omitempty" mapstructure:"currentContext,omitempty"`
 
 	// ClientOptions are client specific options.
-	ClientOptions *ClientOptions `json:"clientOptions,omitempty" yaml:"clientOptions,omitempty" mapstructure:"clientOptions,omitempty"`
+	ClientOptions  *ClientOptions  `json:"clientOptions,omitempty" yaml:"clientOptions,omitempty" mapstructure:"clientOptions,omitempty"`
+	ConfigMetadata *ConfigMetadata `json:"configMetadata,omitempty" yaml:"configMetadata,omitempty" mapstructure:"configMetadata,omitempty"`
+}
+
+type ConfigMetadata struct {
+	patchStrategy map[string]string `json:"patchStrategy,omitempty" yaml:"patchStrategy,omitempty" mapstructure:"patchStrategy,omitempty"`
 }
 
 // +kubebuilder:object:root=true

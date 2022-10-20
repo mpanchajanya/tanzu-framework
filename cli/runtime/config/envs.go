@@ -19,7 +19,7 @@ func GetAllEnvs() (map[string]string, error) {
 }
 
 func getAllEnvs(node *yaml.Node) (map[string]string, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func GetEnv(key string) (string, error) {
 }
 
 func getEnv(node *yaml.Node, key string) (string, error) {
-	cfg, err := convertFromNode[configapi.ClientConfig](node)
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return "", err
 	}
@@ -89,7 +89,7 @@ func deleteEnv(node *yaml.Node, key string) (ok bool, err error) {
 		return true, nil
 	}
 
-	envs, err := convertNodeToMap(envsNode)
+	envs, err := nodeutils.ConvertNodeToMap(envsNode)
 	if err != nil {
 		return false, err
 	}
@@ -98,7 +98,7 @@ func deleteEnv(node *yaml.Node, key string) (ok bool, err error) {
 		delete(envs, key)
 	}
 
-	newEnvsNode, err := convertMapToNode(envs)
+	newEnvsNode, err := nodeutils.ConvertMapToNode(envs)
 	if err != nil {
 		return false, err
 	}
@@ -137,14 +137,14 @@ func setEnv(node *yaml.Node, key, value string) error {
 		return err
 	}
 
-	envs, err := convertNodeToMap(envsNode)
+	envs, err := nodeutils.ConvertNodeToMap(envsNode)
 	if err != nil {
 		return err
 	}
 
 	envs[key] = value
 
-	newEnvsNode, err := convertMapToNode(envs)
+	newEnvsNode, err := nodeutils.ConvertMapToNode(envs)
 	if err != nil {
 		return err
 	}
