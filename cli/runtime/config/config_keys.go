@@ -17,4 +17,6 @@ const (
 	KeyApiVersion              = "apiVersion"
 	KeyBomRepo                 = "bomRepo"
 	KeyCompatibilityFilePath   = "compatibilityFilePath"
+	KeyConfigMetadata          = "configMetadata"
+	KeyPatchStrategy           = "patchStrategy"
 )

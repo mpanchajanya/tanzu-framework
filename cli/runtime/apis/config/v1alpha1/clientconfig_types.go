@@ -297,7 +297,7 @@ type ClientConfig struct {
 }
 
 type ConfigMetadata struct {
-	patchStrategy map[string]string `json:"patchStrategy,omitempty" yaml:"patchStrategy,omitempty" mapstructure:"patchStrategy,omitempty"`
+	PatchStrategy map[string]string `json:"patchStrategy,omitempty" yaml:"patchStrategy,omitempty" mapstructure:"patchStrategy,omitempty"`
 }
 
 // +kubebuilder:object:root=true

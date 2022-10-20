@@ -90,6 +90,16 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 		}
 	}
 
+	if cfg.ConfigMetadata != nil {
+
+		if cfg.ConfigMetadata.PatchStrategy != nil {
+			err = setConfigMetadataPatchStrategies(node, cfg.ConfigMetadata.PatchStrategy)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	_, err = setServers(node, cfg.KnownServers)
 	if err != nil {
 		return err
