@@ -6,46 +6,54 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// GetEdition returns the edition from the local configuration file
 func GetEdition() (string, error) {
 	node, err := GetClientConfigNode()
 	if err != nil {
 		return "", err
 	}
-	val, err := getEdition(node)
-	if err != nil {
-		return "", err
-	}
-	return val, nil
+	return getEdition(node)
+
 }
 
-func SetEdition(val string) error {
+func SetEdition(val string) (persist bool, err error) {
 	node, err := GetClientConfigNode()
 	if err != nil {
-		return err
+		return persist, err
 	}
-	err = setEdition(node, val)
+	persist, err = setEdition(node, val)
 	if err != nil {
-		return err
+		return persist, err
 	}
-	return PersistNode(node)
+
+	if persist {
+		return persist, PersistNode(node)
+	}
+
+	return persist, err
+
 }
 
-func setEdition(node *yaml.Node, val string) error {
+func setEdition(node *yaml.Node, val string) (persist bool, err error) {
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
 		c.Keys = []nodeutils.Key{
 			{Name: KeyClientOptions, Type: yaml.MappingNode},
 			{Name: KeyCLI, Type: yaml.MappingNode},
-			{Name: KeyEdition, Type: yaml.ScalarNode, Value: val},
+			{Name: KeyEdition, Type: yaml.ScalarNode, Value: ""},
 		}
 	}
 	editionNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return false, err
 	}
-	editionNode.Value = val
-	return nil
+
+	if editionNode.Value != val {
+		editionNode.Value = val
+		persist = true
+
+	}
+
+	return persist, err
 }
 
 func getEdition(node *yaml.Node) (string, error) {
@@ -60,28 +68,32 @@ func getEdition(node *yaml.Node) (string, error) {
 	return "", nil
 }
 
-func setUnstableVersionSelector(node *yaml.Node, name string) error {
+func setUnstableVersionSelector(node *yaml.Node, name string) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
 		c.Keys = []nodeutils.Key{
 			{Name: KeyClientOptions, Type: yaml.MappingNode},
 			{Name: KeyCLI, Type: yaml.MappingNode},
-			{Name: KeyUnstableVersionSelector, Type: yaml.ScalarNode, Value: name},
+			{Name: KeyUnstableVersionSelector, Type: yaml.ScalarNode, Value: ""},
 		}
 	}
 
 	unstableVersionSelectorNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
-	unstableVersionSelectorNode.Value = name
 
-	return nil
+	if unstableVersionSelectorNode.Value != name {
+		unstableVersionSelectorNode.Value = name
+		persist = true
+	}
+
+	return persist, err
 
 }
 
-func setBomRepo(node *yaml.Node, repo string) error {
+func setBomRepo(node *yaml.Node, repo string) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -94,15 +106,19 @@ func setBomRepo(node *yaml.Node, repo string) error {
 
 	bomRepoNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
-	bomRepoNode.Value = repo
 
-	return nil
+	if bomRepoNode.Value != repo {
+		bomRepoNode.Value = repo
+		persist = true
+	}
+
+	return persist, err
 
 }
 
-func setCompatibilityFilePath(node *yaml.Node, filepath string) error {
+func setCompatibilityFilePath(node *yaml.Node, filepath string) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -115,10 +131,13 @@ func setCompatibilityFilePath(node *yaml.Node, filepath string) error {
 
 	compatibilityFilePathNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
-	compatibilityFilePathNode.Value = filepath
+	if compatibilityFilePathNode.Value != filepath {
+		compatibilityFilePathNode.Value = filepath
+		persist = true
+	}
 
-	return nil
+	return persist, err
 
 }

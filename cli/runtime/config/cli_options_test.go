@@ -72,26 +72,52 @@ func TestSetEdition(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name   string
-		src    *configapi.ClientConfig
-		out    string
-		errStr string
+		name    string
+		src     *configapi.ClientConfig
+		in      string
+		out     string
+		persist bool
+		errStr  string
 	}{
 		{
-			name: "success tanzu",
+			name: "should persist tanzu when empty edition",
 			src: &configapi.ClientConfig{
 				ClientOptions: &configapi.ClientOptions{
 					CLI: &configapi.CLIOptions{},
 				},
 			},
-			out: "tanzu",
+			in:      "tanzu",
+			out:     "tanzu",
+			persist: true,
 		},
 		{
-			name: "success tanu no edition",
-			src: &configapi.ClientConfig{
-				ClientOptions: &configapi.ClientOptions{},
-			},
-			out: "tanzu",
+			name:    "should persist tanzu when empty client config",
+			src:     &configapi.ClientConfig{},
+			in:      "tanzu",
+			out:     "tanzu",
+			persist: true,
+		},
+		{
+			name: "should update and persist tanzu ",
+			src: &configapi.ClientConfig{ClientOptions: &configapi.ClientOptions{
+				CLI: &configapi.CLIOptions{
+					Edition: "old-tanzu",
+				},
+			}},
+			in:      "tanzu",
+			out:     "tanzu",
+			persist: true,
+		},
+		{
+			name: "should not persist tanzu ",
+			src: &configapi.ClientConfig{ClientOptions: &configapi.ClientOptions{
+				CLI: &configapi.CLIOptions{
+					Edition: "tanzu",
+				},
+			}},
+			in:      "tanzu",
+			out:     "tanzu",
+			persist: false,
 		},
 	}
 
@@ -101,10 +127,11 @@ func TestSetEdition(t *testing.T) {
 			if err != nil {
 				fmt.Printf("StoreClientConfigV2 errors: %v\n", err)
 			}
-			err = SetEdition(spec.out)
+			persist, err := SetEdition(spec.in)
 			if err != nil {
 				fmt.Printf("errors: %v\n", err)
 			}
+			assert.Equal(t, spec.persist, persist)
 
 			c, err := GetEdition()
 

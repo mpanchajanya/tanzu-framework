@@ -99,21 +99,25 @@ func deleteFeature(node *yaml.Node, plugin, key string) error {
 	return nil
 }
 
-func SetFeature(plugin, key, value string) error {
+func SetFeature(plugin, key, value string) (persist bool, err error) {
 	node, err := GetClientConfigNode()
 	if err != nil {
-		return err
+		return persist, err
 	}
 
-	err = setFeature(node, plugin, key, value)
+	persist, err = setFeature(node, plugin, key, value)
 	if err != nil {
-		return err
+		return persist, err
+	}
+	if persist {
+		return persist, PersistNode(node)
 	}
 
-	return PersistNode(node)
+	return persist, err
+
 }
 
-func setFeature(node *yaml.Node, plugin, key, value string) error {
+func setFeature(node *yaml.Node, plugin, key, value string) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -126,16 +130,21 @@ func setFeature(node *yaml.Node, plugin, key, value string) error {
 
 	pluginNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	if index := nodeutils.GetNodeIndex(pluginNode.Content, key); index != -1 {
-		pluginNode.Content[index].Tag = "!!str"
-		pluginNode.Content[index].Value = value
+		if pluginNode.Content[index].Value != value {
+			pluginNode.Content[index].Tag = "!!str"
+			pluginNode.Content[index].Value = value
+			persist = true
+		}
+
 	} else {
 		pluginNode.Content = append(pluginNode.Content, nodeutils.CreateScalarNode(key, value)...)
+		persist = true
 	}
-	return nil
+	return persist, err
 }
 
 func ConfigureDefaultFeatureFlagsIfMissing(plugin string, defaultFeatureFlags map[string]bool) error {

@@ -16,14 +16,10 @@ const (
 	DiscoveryTypeREST       = "rest"
 )
 
-func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery) error {
+func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery) (persist bool, err error) {
 	newNode, err := nodeutils.ConvertToNode[configapi.PluginDiscovery](&discoverySource)
 	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		return err
+		return persist, err
 	}
 
 	exists := false
@@ -33,18 +29,24 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 		discoverySourceType, discoverySourceName := getDiscoverySourceTypeAndName(discoverySource)
 
 		if discoverySourceType == "" || discoverySourceName == "" {
-			return errors.New("not found")
+			return false, errors.New("not found")
 		}
 
 		if discoverySourceIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content, discoverySourceType); discoverySourceIndex != -1 {
 			if discoverySourceFieldIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 && discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
 				exists = true
-
-				err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode)
+				persist, err = nodeutils.NotEqual(newNode.Content[0], discoverySourceNode)
 				if err != nil {
-					return err
+					return persist, err
+				}
+				if persist {
+					err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode)
+					if err != nil {
+						return persist, err
+					}
 				}
 				result = append(result, discoverySourceNode)
+
 			} else {
 				result = append(result, discoverySourceNode)
 			}
@@ -55,11 +57,12 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 
 	if !exists {
 		result = append(result, newNode.Content[0])
+		persist = true
 	}
 	discoverySourcesNode.Style = 0
 	discoverySourcesNode.Content = result
 
-	return nil
+	return persist, err
 
 }
 

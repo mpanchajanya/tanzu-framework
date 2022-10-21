@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
-	"gopkg.in/yaml.v3"
 )
 
 func TestSetRepository(t *testing.T) {
@@ -22,23 +21,63 @@ func TestSetRepository(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name       string
-		repository v1alpha1.PluginRepository
-		cfg        *v1alpha1.ClientConfig
-		repoNode   *yaml.Node
-		errStr     string
+		name    string
+		cfg     *v1alpha1.ClientConfig
+		in      v1alpha1.PluginRepository
+		out     v1alpha1.PluginRepository
+		persist bool
 	}{
 		{
-			name: "success k8s",
-			repository: v1alpha1.PluginRepository{
+			name: "should persist repository",
+			cfg:  &v1alpha1.ClientConfig{},
+			in: v1alpha1.PluginRepository{
 				GCPPluginRepository: &v1alpha1.GCPPluginRepository{
 					Name:       "test",
 					BucketName: "bucket",
 					RootPath:   "root-path",
 				},
 			},
-			cfg:      &v1alpha1.ClientConfig{},
-			repoNode: &yaml.Node{},
+			out: v1alpha1.PluginRepository{
+				GCPPluginRepository: &v1alpha1.GCPPluginRepository{
+					Name:       "test",
+					BucketName: "bucket",
+					RootPath:   "root-path",
+				},
+			},
+			persist: true,
+		},
+		{
+			name: "should not persist same repo",
+			cfg: &v1alpha1.ClientConfig{
+				ClientOptions: &v1alpha1.ClientOptions{
+					CLI: &v1alpha1.CLIOptions{
+						Repositories: []v1alpha1.PluginRepository{
+							{
+								GCPPluginRepository: &v1alpha1.GCPPluginRepository{
+									Name:       "test",
+									BucketName: "bucket",
+									RootPath:   "root-path",
+								},
+							},
+						},
+					},
+				},
+			},
+			in: v1alpha1.PluginRepository{
+				GCPPluginRepository: &v1alpha1.GCPPluginRepository{
+					Name:       "test",
+					BucketName: "bucket",
+					RootPath:   "root-path",
+				},
+			},
+			out: v1alpha1.PluginRepository{
+				GCPPluginRepository: &v1alpha1.GCPPluginRepository{
+					Name:       "test",
+					BucketName: "bucket",
+					RootPath:   "root-path",
+				},
+			},
+			persist: false,
 		},
 	}
 
@@ -48,13 +87,11 @@ func TestSetRepository(t *testing.T) {
 			err := StoreClientConfig(tc.cfg)
 			assert.NoError(t, err)
 
-			err = SetCLIRepository(tc.repository)
-			if tc.errStr == "" {
-				assert.NoError(t, err)
-			} else {
-				assert.EqualError(t, err, tc.errStr)
-			}
+			persist, err := SetCLIRepository(tc.in)
+			assert.Equal(t, tc.persist, persist)
 
+			r, err := GetCLIRepository(tc.out.GCPPluginRepository.Name)
+			assert.Equal(t, tc.out.GCPPluginRepository.Name, r.GCPPluginRepository.Name)
 		})
 	}
 

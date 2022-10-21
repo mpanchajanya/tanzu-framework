@@ -23,16 +23,19 @@ func GetCLIDiscoverySource(name string) (*configapi.PluginDiscovery, error) {
 	return getCLIDiscoverySource(node, name)
 }
 
-func SetCLIDiscoverySource(discoverySource configapi.PluginDiscovery) error {
+func SetCLIDiscoverySource(discoverySource configapi.PluginDiscovery) (persist bool, err error) {
 	node, err := GetClientConfigNode()
 	if err != nil {
-		return err
+		return persist, err
 	}
-	err = setCLIDiscoverySource(node, discoverySource)
+	persist, err = setCLIDiscoverySource(node, discoverySource)
 	if err != nil {
-		return err
+		return persist, err
 	}
-	return PersistNode(node)
+	if persist {
+		return persist, PersistNode(node)
+	}
+	return persist, err
 }
 
 func DeleteCLIDiscoverySource(name string) error {
@@ -77,7 +80,7 @@ func getCLIDiscoverySource(node *yaml.Node, name string) (*configapi.PluginDisco
 	return nil, errors.New("cli discovery source not found")
 }
 
-func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscovery) error {
+func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscovery) (persist bool, err error) {
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
 		c.Keys = []nodeutils.Key{
@@ -89,14 +92,14 @@ func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDisc
 
 	discoverySourcesNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
-	err = setDiscoverySource(discoverySourcesNode, discoverySource)
+	persist, err = setDiscoverySource(discoverySourcesNode, discoverySource)
 	if err != nil {
-		return err
+		return persist, err
 	}
-	return nil
+	return persist, err
 }
 
 func deleteCLIDiscoverySource(node *yaml.Node, name string) error {

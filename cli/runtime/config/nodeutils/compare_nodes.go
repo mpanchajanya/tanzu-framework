@@ -19,3 +19,13 @@ func Equal(node1 *yaml.Node, node2 *yaml.Node) (bool, error) {
 
 	return reflect.DeepEqual(m1, m2), nil
 }
+
+func NotEqual(node1 *yaml.Node, node2 *yaml.Node) (bool, error) {
+
+	equal, err := Equal(node1, node2)
+	if err != nil {
+		return false, err
+	}
+
+	return !equal, nil
+}

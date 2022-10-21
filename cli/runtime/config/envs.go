@@ -108,21 +108,25 @@ func deleteEnv(node *yaml.Node, key string) (ok bool, err error) {
 	return true, nil
 }
 
-func SetEnv(key, value string) error {
+func SetEnv(key, value string) (persist bool, err error) {
 	node, err := GetClientConfigNode()
 	if err != nil {
-		return err
+		return persist, err
 	}
 
-	err = setEnv(node, key, value)
+	persist, err = setEnv(node, key, value)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
-	return PersistNode(node)
+	if persist {
+		return persist, PersistNode(node)
+	}
+
+	return persist, err
 }
 
-func setEnv(node *yaml.Node, key, value string) error {
+func setEnv(node *yaml.Node, key, value string) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -134,24 +138,27 @@ func setEnv(node *yaml.Node, key, value string) error {
 
 	envsNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	envs, err := nodeutils.ConvertNodeToMap(envsNode)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
-	envs[key] = value
+	if len(envs) == 0 || envs[key] != value {
+		envs[key] = value
+		persist = true
+	}
 
 	newEnvsNode, err := nodeutils.ConvertMapToNode(envs)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	envsNode.Content = newEnvsNode.Content[0].Content
 
-	return nil
+	return persist, err
 }
 
 // GetEnvConfigurations returns a map of configured environment variables

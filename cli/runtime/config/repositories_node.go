@@ -7,10 +7,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository) error {
+func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository) (persist bool, err error) {
 	newNode, err := nodeutils.ConvertToNode[configapi.PluginRepository](&repository)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	exists := false
@@ -20,17 +20,20 @@ func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepos
 		repositoryType, repositoryName := getRepositoryTypeAndName(repository)
 
 		if repositoryType == "" || repositoryName == "" {
-			return errors.New("not found")
+			return persist, errors.New("not found")
 		}
 
 		if repositoryIndex := nodeutils.GetNodeIndex(repositoryNode.Content, repositoryType); repositoryIndex != -1 {
 			if repositoryFieldIndex := nodeutils.GetNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
 				exists = true
-
-				err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode)
-				if err != nil {
-					return err
+				persist, err = nodeutils.NotEqual(newNode.Content[0], repositoryNode)
+				if persist {
+					err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode)
+					if err != nil {
+						return persist, err
+					}
 				}
+
 				result = append(result, repositoryNode)
 			}
 		}
@@ -39,11 +42,12 @@ func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepos
 
 	if !exists {
 		result = append(result, newNode.Content[0])
+		persist = true
 	}
 
 	repositoriesNode.Content = result
 
-	return nil
+	return persist, err
 
 }
 

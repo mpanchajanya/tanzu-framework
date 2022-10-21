@@ -119,18 +119,15 @@ func TestSetEnv(t *testing.T) {
 		LocalDirName = fmt.Sprintf(".tanzu-test")
 	}()
 
-	defer func() {
-		cleanupDir(LocalDirName)
-	}()
-
 	tests := []struct {
-		name   string
-		src    *configapi.ClientConfig
-		out    string
-		errStr string
+		name    string
+		src     *configapi.ClientConfig
+		key     string
+		val     string
+		persist bool
 	}{
 		{
-			name: "success k8s",
+			name: "should add new env to existing envs",
 			src: &configapi.ClientConfig{
 				ClientOptions: &configapi.ClientOptions{
 					Env: map[string]string{
@@ -138,31 +135,67 @@ func TestSetEnv(t *testing.T) {
 					},
 				},
 			},
-			out: "test2",
+			key:     "test2",
+			val:     "test2",
+			persist: true,
 		},
 		{
-			name: "success k8s",
+			name: "should add new env to empty envs",
 			src: &configapi.ClientConfig{
 				ClientOptions: &configapi.ClientOptions{},
 			},
-			out: "test2",
+			key:     "test2",
+			val:     "test2",
+			persist: true,
+		},
+		{
+			name: "should update existing env",
+			src: &configapi.ClientConfig{
+				ClientOptions: &configapi.ClientOptions{
+					Env: map[string]string{
+						"test": "test",
+					},
+				},
+			},
+			key:     "test",
+			val:     "updated-test",
+			persist: true,
+		},
+		{
+			name: "should not update same env",
+			src: &configapi.ClientConfig{
+				ClientOptions: &configapi.ClientOptions{
+					Env: map[string]string{
+						"test": "test",
+					},
+				},
+			},
+			key:     "test",
+			val:     "test",
+			persist: false,
 		},
 	}
 
 	for _, spec := range tests {
 		t.Run(spec.name, func(t *testing.T) {
+			defer func() {
+				cleanupDir(LocalDirName)
+			}()
+
 			err := StoreClientConfig(spec.src)
 			if err != nil {
 				fmt.Printf("StoreClientConfigV2 errors: %v\n", err)
 			}
-			err = SetEnv(spec.out, spec.out)
+			persist, err := SetEnv(spec.key, spec.val)
 			if err != nil {
 				fmt.Printf("errors: %v\n", err)
 			}
 
-			c, err := GetEnv(spec.out)
+			assert.Equal(t, spec.persist, persist)
 
-			assert.Equal(t, spec.out, c)
+			val, err := GetEnv(spec.key)
+
+			assert.Equal(t, spec.val, val)
 			assert.NoError(t, err)
 
 		})

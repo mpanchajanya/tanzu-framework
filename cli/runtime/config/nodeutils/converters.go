@@ -58,19 +58,3 @@ func ConvertNodeToMapInterface(node *yaml.Node) (envs map[string]interface{}, er
 	}
 	return envs, err
 }
-
-//
-//func ConvertMapInterfaceToNode(envs map[string]interface) (*yaml.Node, error) {
-//	bytes, err := yaml.Marshal(envs)
-//	if err != nil {
-//		return nil, err
-//	}
-//	var node yaml.Node
-//	err = yaml.Unmarshal(bytes, &node)
-//	if err != nil {
-//		return nil, err
-//	}
-//	node.Style = 0
-//	node.Content[0].Style = 0
-//	return &node, nil
-//}

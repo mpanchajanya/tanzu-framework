@@ -77,20 +77,20 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 	}
 
 	if cfg.Kind != "" {
-		err = setKind(node, cfg.Kind)
+		_, err = setKind(node, cfg.Kind)
 		if err != nil {
 			return err
 		}
 	}
 
 	if cfg.APIVersion != "" {
-		err = setApiVersion(node, cfg.APIVersion)
+		_, err = setApiVersion(node, cfg.APIVersion)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = setServers(node, cfg.KnownServers)
+	err = setServers(node, cfg.KnownServers)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 	}
 
-	_, err = setContexts(node, cfg.KnownContexts)
+	err = setContexts(node, cfg.KnownContexts)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			if contextErr != nil {
 				return contextErr
 			}
-			err = setCurrentContext(node, ctx)
+			_, err = setCurrentContext(node, ctx)
 			if err != nil {
 				return err
 			}
@@ -126,7 +126,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 		if cfg.ClientOptions.Features != nil {
 			for plugin, _ := range cfg.ClientOptions.Features {
 				for key, value := range cfg.ClientOptions.Features[plugin] {
-					err = setFeature(node, plugin, key, value)
+					_, err = setFeature(node, plugin, key, value)
 					if err != nil {
 						return err
 					}
@@ -136,7 +136,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 		if cfg.ClientOptions.Env != nil {
 			for key, value := range cfg.ClientOptions.Env {
-				err = setEnv(node, key, value)
+				_, err = setEnv(node, key, value)
 				if err != nil {
 					return err
 				}
@@ -147,7 +147,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 			if cfg.ClientOptions.CLI.Repositories != nil && len(cfg.ClientOptions.CLI.Repositories) != 0 {
 				for _, repository := range cfg.ClientOptions.CLI.Repositories {
-					err = setCLIRepository(node, repository)
+					_, err = setCLIRepository(node, repository)
 					if err != nil {
 						return err
 					}
@@ -156,7 +156,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 
 			if cfg.ClientOptions.CLI.DiscoverySources != nil && len(cfg.ClientOptions.CLI.DiscoverySources) != 0 {
 				for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
-					err = setCLIDiscoverySource(node, discoverySource)
+					_, err = setCLIDiscoverySource(node, discoverySource)
 					if err != nil {
 						return err
 					}
@@ -164,7 +164,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.UnstableVersionSelector != "" {
-				err = setUnstableVersionSelector(node, string(cfg.ClientOptions.CLI.UnstableVersionSelector))
+				_, err = setUnstableVersionSelector(node, string(cfg.ClientOptions.CLI.UnstableVersionSelector))
 				if err != nil {
 					return err
 				}
@@ -172,7 +172,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.Edition != "" {
-				err = setEdition(node, string(cfg.ClientOptions.CLI.Edition))
+				_, err = setEdition(node, string(cfg.ClientOptions.CLI.Edition))
 				if err != nil {
 					return err
 				}
@@ -180,7 +180,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.BOMRepo != "" {
-				err = setBomRepo(node, string(cfg.ClientOptions.CLI.BOMRepo))
+				_, err = setBomRepo(node, string(cfg.ClientOptions.CLI.BOMRepo))
 				if err != nil {
 					return err
 				}
@@ -188,7 +188,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.CompatibilityFilePath != "" {
-				err = setCompatibilityFilePath(node, string(cfg.ClientOptions.CLI.CompatibilityFilePath))
+				_, err = setCompatibilityFilePath(node, string(cfg.ClientOptions.CLI.CompatibilityFilePath))
 				if err != nil {
 					return err
 				}
