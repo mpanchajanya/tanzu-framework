@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
-	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
+	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -221,7 +221,7 @@ func getContext(node *yaml.Node, name string) (*configapi.Context, error) {
 			return ctx, nil
 		}
 	}
-	return nil, fmt.Errorf("could not find context %q", name)
+	return nil, fmt.Errorf("context %v not found", name)
 
 }
 
@@ -243,14 +243,12 @@ func setContexts(node *yaml.Node, contexts []*configapi.Context) (err error) {
 	return err
 }
 
-func setContext(node *yaml.Node, c *configapi.Context) (persist bool, err error) {
+func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err error) {
 
-	// Merge DiscoverSources separately
-	copyOfDiscoverySources := c.DiscoverySources
-	c.DiscoverySources = []configapi.PluginDiscovery{}
+	var persistDiscoverySources bool
 
 	//convert context to node
-	newContextNode, err := nodeutils.ConvertToNode[configapi.Context](c)
+	newContextNode, err := nodeutils.ConvertToNode[configapi.Context](ctx)
 	if err != nil {
 		return persist, err
 	}
@@ -270,27 +268,9 @@ func setContext(node *yaml.Node, c *configapi.Context) (persist bool, err error)
 	exists := false
 	var result []*yaml.Node
 	for _, contextNode := range contextsNode.Content {
-		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == c.Name {
+		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 &&
+			contextNode.Content[index].Value == ctx.Name {
 			exists = true
-
-			opts := func(c *nodeutils.Config) {
-				c.ForceCreate = true
-				c.Keys = []nodeutils.Key{
-					{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
-				}
-			}
-
-			discoverySourcesNode, err := nodeutils.FindNode(node, opts)
-			if err != nil {
-				return persist, err
-			}
-
-			for _, discoverySource := range copyOfDiscoverySources {
-				persist, err = setDiscoverySource(discoverySourcesNode, discoverySource)
-				if err != nil {
-					return persist, err
-				}
-			}
 
 			persist, err = nodeutils.NotEqual(newContextNode.Content[0], contextNode)
 			if err != nil {
@@ -300,6 +280,17 @@ func setContext(node *yaml.Node, c *configapi.Context) (persist bool, err error)
 				err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
 				if err != nil {
 					return persist, err
+				}
+			}
+
+			persistDiscoverySources, err = setDiscoverySources(contextNode, ctx.DiscoverySources)
+			if err != nil {
+				return persistDiscoverySources, err
+			}
+			if persistDiscoverySources {
+				err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
+				if err != nil {
+					return persistDiscoverySources, err
 				}
 			}
 

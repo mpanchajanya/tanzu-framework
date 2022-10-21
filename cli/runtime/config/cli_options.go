@@ -125,7 +125,7 @@ func setCompatibilityFilePath(node *yaml.Node, filepath string) (persist bool, e
 		c.Keys = []nodeutils.Key{
 			{Name: KeyClientOptions, Type: yaml.MappingNode},
 			{Name: KeyCLI, Type: yaml.MappingNode},
-			{Name: KeyCompatibilityFilePath, Type: yaml.ScalarNode, Value: filepath},
+			{Name: KeyCompatibilityFilePath, Type: yaml.ScalarNode, Value: ""},
 		}
 	}
 

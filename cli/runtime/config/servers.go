@@ -387,13 +387,10 @@ func setServers(node *yaml.Node, servers []*configapi.Server) error {
 
 func setServer(node *yaml.Node, s *configapi.Server) (persist bool, err error) {
 
-	// Merge DiscoverSources separately
-	copyOfDiscoverySources := s.DiscoverySources
-	s.DiscoverySources = []configapi.PluginDiscovery{}
-	fmt.Println(copyOfDiscoverySources)
+	var persistDiscoverySources bool
 
-	//convert server to nodeutils
-	newNode, err := nodeutils.ConvertToNode[configapi.Server](s)
+	//convert server to node
+	newServerNode, err := nodeutils.ConvertToNode[configapi.Server](s)
 	if err != nil {
 		return persist, err
 	}
@@ -413,25 +410,33 @@ func setServer(node *yaml.Node, s *configapi.Server) (persist bool, err error) {
 	exists := false
 	var result []*yaml.Node
 	for _, serverNode := range serversNode.Content {
-		if index := nodeutils.GetNodeIndex(serverNode.Content, "name"); index != -1 && serverNode.Content[index].Value == s.Name {
+		if index := nodeutils.GetNodeIndex(serverNode.Content, "name"); index != -1 &&
+			serverNode.Content[index].Value == s.Name {
 			exists = true
 
-			for _, discoverySource := range copyOfDiscoverySources {
-				persist, err = setDiscoverySource(serverNode, discoverySource)
-				if err != nil {
-					return persist, err
-				}
-			}
-			persist, err = nodeutils.NotEqual(newNode.Content[0], serverNode)
+			persist, err = nodeutils.NotEqual(newServerNode.Content[0], serverNode)
 			if err != nil {
 				return persist, err
 			}
 			if persist {
-				err = nodeutils.MergeNodes(newNode.Content[0], serverNode)
+				err = nodeutils.MergeNodes(newServerNode.Content[0], serverNode)
 				if err != nil {
 					return false, err
 				}
 			}
+
+			persistDiscoverySources, err = setDiscoverySources(serverNode, s.DiscoverySources)
+			if err != nil {
+				return persistDiscoverySources, err
+			}
+
+			if persistDiscoverySources {
+				err = nodeutils.MergeNodes(newServerNode.Content[0], serverNode)
+				if err != nil {
+					return persistDiscoverySources, err
+				}
+			}
+
 			result = append(result, serverNode)
 			continue
 		}
@@ -439,13 +444,13 @@ func setServer(node *yaml.Node, s *configapi.Server) (persist bool, err error) {
 	}
 
 	if !exists {
-		result = append(result, newNode.Content[0])
+		result = append(result, newServerNode.Content[0])
 		persist = true
 	}
 
 	serversNode.Content = result
 
-	return persist, err
+	return persistDiscoverySources || persist, err
 
 }
 

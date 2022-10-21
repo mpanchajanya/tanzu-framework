@@ -16,6 +16,29 @@ const (
 	DiscoveryTypeREST       = "rest"
 )
 
+func setDiscoverySources(node *yaml.Node, discoverySources []configapi.PluginDiscovery) (persist bool, err error) {
+
+	opts := func(c *nodeutils.Config) {
+		c.ForceCreate = true
+		c.Keys = []nodeutils.Key{
+			{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
+		}
+	}
+
+	discoverySourcesNode, err := nodeutils.FindNode(node, opts)
+	if err != nil {
+		return persist, err
+	}
+
+	for _, discoverySource := range discoverySources {
+		persist, err = setDiscoverySource(discoverySourcesNode, discoverySource)
+		if err != nil {
+			return persist, err
+		}
+	}
+	return persist, err
+}
+
 func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery) (persist bool, err error) {
 	newNode, err := nodeutils.ConvertToNode[configapi.PluginDiscovery](&discoverySource)
 	if err != nil {
@@ -33,7 +56,8 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 		}
 
 		if discoverySourceIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content, discoverySourceType); discoverySourceIndex != -1 {
-			if discoverySourceFieldIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 && discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
+			if discoverySourceFieldIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 &&
+				discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
 				exists = true
 				persist, err = nodeutils.NotEqual(newNode.Content[0], discoverySourceNode)
 				if err != nil {
@@ -46,13 +70,10 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 					}
 				}
 				result = append(result, discoverySourceNode)
-
-			} else {
-				result = append(result, discoverySourceNode)
+				continue
 			}
-		} else {
-			result = append(result, discoverySourceNode)
 		}
+		result = append(result, discoverySourceNode)
 	}
 
 	if !exists {

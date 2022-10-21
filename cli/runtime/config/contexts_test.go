@@ -10,26 +10,30 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
+	"gopkg.in/yaml.v3"
 )
 
-func TestSetContextWithDiscoverySource(t *testing.T) {
+func TestSetContextWithDiscoverySourceWithNewFields(t *testing.T) {
 	// setup
 	func() {
 		LocalDirName = fmt.Sprintf(".tanzu-test")
 	}()
 
-	defer func() {
-		cleanupDir(LocalDirName)
-	}()
+	//defer func() {
+	//	cleanupDir(LocalDirName)
+	//}()
 
 	tests := []struct {
 		name    string
+		src     *v1alpha1.ClientConfig
 		ctx     *v1alpha1.Context
 		current bool
 		errStr  string
 	}{
 		{
-			name: "success k8s",
+			name: "should add new context with new discovery sources to empty client config",
+			src:  &v1alpha1.ClientConfig{},
 			ctx: &v1alpha1.Context{
 				Name: "test-mc",
 				Type: "k8s",
@@ -50,12 +54,231 @@ func TestSetContextWithDiscoverySource(t *testing.T) {
 					},
 				},
 			},
-			current: false,
+			current: true,
+		},
+		{
+			name: "should update existing context",
+			src: &v1alpha1.ClientConfig{
+				KnownContexts: []*v1alpha1.Context{
+					{
+						Name: "test-mc",
+						Type: "k8s",
+						ClusterOpts: &v1alpha1.ClusterServer{
+							Endpoint:            "test-endpoint",
+							Path:                "test-path",
+							Context:             "test-context",
+							IsManagementCluster: true,
+						},
+						DiscoverySources: []v1alpha1.PluginDiscovery{
+							{
+								GCP: &v1alpha1.GCPDiscovery{
+									Name:         "test",
+									Bucket:       "test-bucket",
+									ManifestPath: "test-manifest-path",
+								},
+								ContextType: v1alpha1.CtxTypeTMC,
+							},
+						},
+					},
+				},
+				KnownServers: []*v1alpha1.Server{
+					{
+						Name: "test-mc",
+						Type: v1alpha1.ManagementClusterServerType,
+						ManagementClusterOpts: &v1alpha1.ManagementClusterServer{
+							Endpoint: "test-endpoint",
+							Path:     "test-path",
+							Context:  "test-context",
+						},
+						DiscoverySources: []v1alpha1.PluginDiscovery{
+							{
+								GCP: &v1alpha1.GCPDiscovery{
+									Name:         "test",
+									Bucket:       "test-bucket",
+									ManifestPath: "test-manifest-path",
+								},
+								ContextType: v1alpha1.CtxTypeTMC,
+							},
+						},
+					},
+				},
+				CurrentServer: "test-mc",
+				CurrentContext: map[v1alpha1.ContextType]string{
+					v1alpha1.CtxTypeK8s: "test-mc",
+				},
+			},
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "updated-test-endpoint",
+					Path:                "updated-test-path",
+					Context:             "updated-test-context",
+					IsManagementCluster: true,
+				},
+				DiscoverySources: []v1alpha1.PluginDiscovery{
+					{
+						GCP: &v1alpha1.GCPDiscovery{
+							Name:         "test",
+							Bucket:       "updated-test-bucket",
+							ManifestPath: "updated-test-manifest-path",
+						},
+						ContextType: v1alpha1.CtxTypeTMC,
+					},
+				},
+			},
+			current: true,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			//setup data
+			//node, err := nodeutils.ConvertToNode(tc.src)
+			//assert.NoError(t, err)
+			//err = PersistNode(node)
+			//assert.NoError(t, err)
+
+			err := SetContext(tc.ctx, tc.current)
+			if tc.errStr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tc.errStr)
+			}
+
+			ok, err := ContextExists(tc.ctx.Name)
+			assert.True(t, ok)
+			assert.NoError(t, err)
+		})
+	}
+
+}
+
+func TestSetContextWithDiscoverySource(t *testing.T) {
+	// setup
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	//defer func() {
+	//	cleanupDir(LocalDirName)
+	//}()
+
+	tests := []struct {
+		name    string
+		src     *v1alpha1.ClientConfig
+		ctx     *v1alpha1.Context
+		current bool
+		errStr  string
+	}{
+		{
+			name: "should add new context with new discovery sources to empty client config",
+			src:  &v1alpha1.ClientConfig{},
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint",
+					Path:                "test-path",
+					Context:             "test-context",
+					IsManagementCluster: true,
+				},
+				DiscoverySources: []v1alpha1.PluginDiscovery{
+					{
+						GCP: &v1alpha1.GCPDiscovery{
+							Name:         "test",
+							Bucket:       "updated-test-bucket",
+							ManifestPath: "test-manifest-path",
+						},
+						ContextType: v1alpha1.CtxTypeTMC,
+					},
+				},
+			},
+			current: true,
+		},
+		{
+			name: "should update existing context",
+			src: &v1alpha1.ClientConfig{
+				KnownContexts: []*v1alpha1.Context{
+					{
+						Name: "test-mc",
+						Type: "k8s",
+						ClusterOpts: &v1alpha1.ClusterServer{
+							Endpoint:            "test-endpoint",
+							Path:                "test-path",
+							Context:             "test-context",
+							IsManagementCluster: true,
+						},
+						DiscoverySources: []v1alpha1.PluginDiscovery{
+							{
+								GCP: &v1alpha1.GCPDiscovery{
+									Name:         "test",
+									Bucket:       "test-bucket",
+									ManifestPath: "test-manifest-path",
+								},
+								ContextType: v1alpha1.CtxTypeTMC,
+							},
+						},
+					},
+				},
+				KnownServers: []*v1alpha1.Server{
+					{
+						Name: "test-mc",
+						Type: v1alpha1.ManagementClusterServerType,
+						ManagementClusterOpts: &v1alpha1.ManagementClusterServer{
+							Endpoint: "test-endpoint",
+							Path:     "test-path",
+							Context:  "test-context",
+						},
+						DiscoverySources: []v1alpha1.PluginDiscovery{
+							{
+								GCP: &v1alpha1.GCPDiscovery{
+									Name:         "test",
+									Bucket:       "test-bucket",
+									ManifestPath: "test-manifest-path",
+								},
+								ContextType: v1alpha1.CtxTypeTMC,
+							},
+						},
+					},
+				},
+				CurrentServer: "test-mc",
+				CurrentContext: map[v1alpha1.ContextType]string{
+					v1alpha1.CtxTypeK8s: "test-mc",
+				},
+			},
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "updated-test-endpoint",
+					Path:                "updated-test-path",
+					Context:             "updated-test-context",
+					IsManagementCluster: true,
+				},
+				DiscoverySources: []v1alpha1.PluginDiscovery{
+					{
+						GCP: &v1alpha1.GCPDiscovery{
+							Name:         "test",
+							Bucket:       "updated-test-bucket",
+							ManifestPath: "updated-test-manifest-path",
+						},
+						ContextType: v1alpha1.CtxTypeTMC,
+					},
+				},
+			},
+			current: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			//setup data
+			//node, err := nodeutils.ConvertToNode(tc.src)
+			//assert.NoError(t, err)
+			//err = PersistNode(node)
+			//assert.NoError(t, err)
+
 			err := SetContext(tc.ctx, tc.current)
 			if tc.errStr == "" {
 				assert.NoError(t, err)
@@ -189,18 +412,22 @@ func TestSetContext(t *testing.T) {
 		LocalDirName = fmt.Sprintf(".tanzu-test")
 	}()
 
-	//defer func() {
-	//	cleanupDir(LocalDirName)
-	//}()
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tcs := []struct {
 		name    string
+		src     *v1alpha1.ClientConfig
+		srcNode *yaml.Node
 		ctx     *v1alpha1.Context
 		current bool
 		errStr  string
 	}{
 		{
-			name: "success k8s current",
+			name:    "should add new context and set current to empty config",
+			src:     &v1alpha1.ClientConfig{},
+			srcNode: &yaml.Node{},
 			ctx: &v1alpha1.Context{
 				Name: "test-mc",
 				Type: "k8s",
@@ -214,7 +441,25 @@ func TestSetContext(t *testing.T) {
 			current: true,
 		},
 		{
-			name: "success k8s current",
+			name: "should update existing context",
+			src: &v1alpha1.ClientConfig{
+				CurrentContext: map[v1alpha1.ContextType]string{
+					v1alpha1.CtxTypeK8s: "test-mc",
+				},
+				CurrentServer: "test-mc",
+				KnownContexts: []*v1alpha1.Context{
+					{
+						Name: "test-mc",
+						Type: "k8s",
+						ClusterOpts: &v1alpha1.ClusterServer{
+							Endpoint:            "test-endpoint",
+							Path:                "test-path",
+							Context:             "test-context",
+							IsManagementCluster: true,
+						},
+					},
+				},
+			},
 			ctx: &v1alpha1.Context{
 				Name: "test-mc",
 				Type: "k8s",
@@ -228,6 +473,7 @@ func TestSetContext(t *testing.T) {
 		},
 		{
 			name: "success k8s not_current",
+			src:  &v1alpha1.ClientConfig{},
 			ctx: &v1alpha1.Context{
 				Name: "test-mc2",
 				Type: "k8s",
@@ -241,6 +487,7 @@ func TestSetContext(t *testing.T) {
 		},
 		{
 			name: "success tmc current",
+			src:  &v1alpha1.ClientConfig{},
 			ctx: &v1alpha1.Context{
 				Name: "test-tmc1",
 				Type: "tmc",
@@ -287,7 +534,14 @@ func TestSetContext(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := SetContext(tc.ctx, tc.current)
+			//setup data
+			node, err := nodeutils.ConvertToNode(tc.src)
+			assert.NoError(t, err)
+			err = PersistNode(node)
+			assert.NoError(t, err)
+
+			//perform test
+			err = SetContext(tc.ctx, tc.current)
 			fmt.Printf("eeeeee %v\n", err)
 			if tc.errStr == "" {
 				assert.NoError(t, err)
@@ -295,12 +549,15 @@ func TestSetContext(t *testing.T) {
 				assert.EqualError(t, err, tc.errStr)
 			}
 
-			ok, err := ContextExists(tc.ctx.Name)
-			assert.True(t, ok)
+			ctx, err := GetContext(tc.ctx.Name)
 			assert.NoError(t, err)
-			ok, err = ServerExists(tc.ctx.Name)
-			assert.True(t, ok)
+			assert.Equal(t, tc.ctx.Name, ctx.Name)
+
+			s, err := GetServer(tc.ctx.Name)
+
 			assert.NoError(t, err)
+			assert.Equal(t, tc.ctx.Name, s.Name)
+
 		})
 	}
 }
@@ -422,9 +679,9 @@ func TestSetContextWithReplaceStrategy(t *testing.T) {
 		LocalDirName = fmt.Sprintf(".tanzu-test")
 	}()
 
-	//defer func() {
-	//	cleanupDir(LocalDirName)
-	//}()
+	defer func() {
+		cleanupDir(LocalDirName)
+	}()
 
 	tcs := []struct {
 		name    string

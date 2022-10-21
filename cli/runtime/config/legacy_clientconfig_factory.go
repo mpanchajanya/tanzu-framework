@@ -180,7 +180,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.BOMRepo != "" {
-				_, err = setBomRepo(node, string(cfg.ClientOptions.CLI.BOMRepo))
+				_, err = setBomRepo(node, cfg.ClientOptions.CLI.BOMRepo)
 				if err != nil {
 					return err
 				}
@@ -188,7 +188,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.CompatibilityFilePath != "" {
-				_, err = setCompatibilityFilePath(node, string(cfg.ClientOptions.CLI.CompatibilityFilePath))
+				_, err = setCompatibilityFilePath(node, cfg.ClientOptions.CLI.CompatibilityFilePath)
 				if err != nil {
 					return err
 				}

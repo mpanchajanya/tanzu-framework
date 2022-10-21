@@ -147,9 +147,8 @@ func deleteCLIRepository(node *yaml.Node, name string) error {
 			if repositoryFieldIndex := nodeutils.GetNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
 				continue
 			}
-		} else {
-			result = append(result, repositoryNode)
 		}
+		result = append(result, repositoryNode)
 
 	}
 
@@ -157,5 +156,59 @@ func deleteCLIRepository(node *yaml.Node, name string) error {
 	cliRepositoriesNode.Content = result
 
 	return nil
+
+}
+
+func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository) (persist bool, err error) {
+	newNode, err := nodeutils.ConvertToNode[configapi.PluginRepository](&repository)
+	if err != nil {
+		return persist, err
+	}
+
+	exists := false
+	var result []*yaml.Node
+	for _, repositoryNode := range repositoriesNode.Content {
+
+		repositoryType, repositoryName := getRepositoryTypeAndName(repository)
+
+		if repositoryType == "" || repositoryName == "" {
+			return persist, errors.New("not found")
+		}
+
+		if repositoryIndex := nodeutils.GetNodeIndex(repositoryNode.Content, repositoryType); repositoryIndex != -1 {
+			if repositoryFieldIndex := nodeutils.GetNodeIndex(repositoryNode.Content[repositoryIndex].Content, "name"); repositoryFieldIndex != -1 && repositoryNode.Content[repositoryIndex].Content[repositoryFieldIndex].Value == repositoryName {
+				exists = true
+				persist, err = nodeutils.NotEqual(newNode.Content[0], repositoryNode)
+				if persist {
+					err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode)
+					if err != nil {
+						return persist, err
+					}
+				}
+
+				result = append(result, repositoryNode)
+			}
+		}
+
+	}
+
+	if !exists {
+		result = append(result, newNode.Content[0])
+		persist = true
+	}
+
+	repositoriesNode.Style = 0
+	repositoriesNode.Content = result
+
+	return persist, err
+
+}
+
+func getRepositoryTypeAndName(repository configapi.PluginRepository) (string, string) {
+
+	if repository.GCPPluginRepository != nil && repository.GCPPluginRepository.Name != "" {
+		return "gcpPluginRepository", repository.GCPPluginRepository.Name
+	}
+	return "", ""
 
 }

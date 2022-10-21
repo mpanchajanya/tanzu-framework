@@ -46,11 +46,13 @@ func MergeNodes(src, dst *yaml.Node) error {
 			}
 		}
 	case yaml.SequenceNode:
-		dst.Content = append(dst.Content, src.Content...)
+		if dst.Content[0].Kind == yaml.ScalarNode && src.Content[0].Kind == yaml.ScalarNode {
+			dst.Content = append(dst.Content, src.Content...)
+		}
 	case yaml.DocumentNode:
 		err := MergeNodes(src.Content[0], dst.Content[0])
 		if err != nil {
-			errors.New("at key " + src.Content[0].Value + ": " + err.Error())
+			return errors.New("at key " + src.Content[0].Value + ": " + err.Error())
 		}
 	case yaml.ScalarNode:
 		if dst.Value != src.Value {
