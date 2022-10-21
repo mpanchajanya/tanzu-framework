@@ -12,11 +12,11 @@ func FindNode(node *yaml.Node, opts ...Options) (*yaml.Node, error) {
 
 	parent := node
 	for _, nodeKey := range nodeConfig.Keys {
-		child := findNode(parent, nodeKey.Name)
+		child := GetNode(parent, nodeKey.Name)
 		if child == nil {
 			if nodeConfig.ForceCreate {
 				parent.Content = append(parent.Content, CreateNode(nodeKey)...)
-				child = findNode(parent, nodeKey.Name)
+				child = GetNode(parent, nodeKey.Name)
 			} else {
 				return nil, nil
 			}
@@ -27,7 +27,7 @@ func FindNode(node *yaml.Node, opts ...Options) (*yaml.Node, error) {
 	return parent, nil
 }
 
-func findNode(node *yaml.Node, key string) *yaml.Node {
+func GetNode(node *yaml.Node, key string) *yaml.Node {
 	if node.Content == nil || len(node.Content) == 0 {
 		return nil
 	}

@@ -74,6 +74,7 @@ func TestSetAndDeleteFeature(t *testing.T) {
 		plugin  string
 		key     string
 		value   bool
+		persist bool
 	}{
 		{
 			name: "success context-aware-cli-for-plugins",
@@ -83,9 +84,10 @@ func TestSetAndDeleteFeature(t *testing.T) {
 					"context-aware-cli-for-plugins": "true",
 				},
 			},
-			plugin: "global",
-			key:    "context-aware-cli-for-plugins",
-			value:  false,
+			plugin:  "global",
+			key:     "context-aware-cli-for-plugins",
+			value:   false,
+			persist: true,
 		},
 	}
 
@@ -101,8 +103,9 @@ func TestSetAndDeleteFeature(t *testing.T) {
 			err := StoreClientConfig(cfg)
 			assert.NoError(t, err)
 
-			err = SetFeature(tc.plugin, tc.key, strconv.FormatBool(tc.value))
+			persist, err := SetFeature(tc.plugin, tc.key, strconv.FormatBool(tc.value))
 			assert.NoError(t, err)
+			assert.Equal(t, tc.persist, persist)
 
 			ok, err := IsFeatureEnabled(tc.plugin, tc.key)
 			assert.NoError(t, err)
@@ -114,8 +117,10 @@ func TestSetAndDeleteFeature(t *testing.T) {
 			ok, err = IsFeatureEnabled(tc.plugin, tc.key)
 			assert.Equal(t, ok, tc.value)
 
-			err = SetFeature(tc.plugin, tc.key, strconv.FormatBool(tc.value))
+			persist, err = SetFeature(tc.plugin, tc.key, strconv.FormatBool(tc.value))
 			assert.NoError(t, err)
+			assert.Equal(t, tc.persist, persist)
+
 		})
 	}
 
@@ -133,38 +138,71 @@ func TestSetFeature(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		feature map[string]v1alpha1.FeatureMap
+		cfg     *v1alpha1.ClientConfig
 		plugin  string
 		key     string
 		value   bool
+		persist bool
 	}{
 		{
 			name: "success context-aware-cli-for-plugins",
-			feature: map[string]v1alpha1.FeatureMap{
-				"global": {
-					"context-aware-cli-for-plugins": "true",
+			cfg: &v1alpha1.ClientConfig{
+				ClientOptions: &v1alpha1.ClientOptions{
+					Features: map[string]v1alpha1.FeatureMap{
+						"global": {
+							"context-aware-cli-for-plugins": "true",
+						},
+					},
 				},
 			},
-			plugin: "global",
-			key:    "context-aware-cli-for-plugins",
-			value:  false,
+			plugin:  "global",
+			key:     "context-aware-cli-for-plugins",
+			value:   false,
+			persist: true,
+		},
+		{
+			name: "success context-aware-cli-for-plugins",
+			cfg: &v1alpha1.ClientConfig{
+				ClientOptions: &v1alpha1.ClientOptions{
+					Features: map[string]v1alpha1.FeatureMap{
+						"global": {
+							"context-aware-cli-for-plugins": "true",
+						},
+					},
+				},
+			},
+			plugin:  "global",
+			key:     "context-aware-cli-for-plugins",
+			value:   false,
+			persist: true,
+		},
+		{
+			name: "should not update the same feature value",
+			cfg: &v1alpha1.ClientConfig{
+				ClientOptions: &v1alpha1.ClientOptions{
+					Features: map[string]v1alpha1.FeatureMap{
+						"global": {
+							"context-aware-cli-for-plugins": "true",
+						},
+					},
+				},
+			},
+			plugin:  "global",
+			key:     "context-aware-cli-for-plugins",
+			value:   true,
+			persist: false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 
-			cfg := &v1alpha1.ClientConfig{
-				ClientOptions: &v1alpha1.ClientOptions{
-					Features: tc.feature,
-				},
-			}
-
-			err := StoreClientConfig(cfg)
+			err := StoreClientConfig(tc.cfg)
 			assert.NoError(t, err)
 
-			err = SetFeature(tc.plugin, tc.key, strconv.FormatBool(tc.value))
+			persist, err := SetFeature(tc.plugin, tc.key, strconv.FormatBool(tc.value))
 			assert.NoError(t, err)
+			assert.Equal(t, tc.persist, persist)
 
 			ok, err := IsFeatureEnabled(tc.plugin, tc.key)
 			assert.NoError(t, err)

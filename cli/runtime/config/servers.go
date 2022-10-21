@@ -47,19 +47,32 @@ func SetCurrentServer(name string) error {
 		return err
 	}
 
-	_, err = setCurrentServer(node, name)
+	persist, err := setCurrentServer(node, name)
 	if err != nil {
 		return err
+	}
+	if persist {
+		err = PersistNode(node)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Front fill CurrentContext
 	c := convertServerToContext(s)
-	err = setCurrentContext(node, c)
+	persist, err = setCurrentContext(node, c)
 	if err != nil {
 		return err
 	}
+	if persist {
+		err = PersistNode(node)
+		if err != nil {
+			return err
+		}
+	}
 
-	return PersistNode(node)
+	return nil
+
 }
 
 func RemoveCurrentServer(name string) error {
@@ -89,23 +102,19 @@ func RemoveCurrentServer(name string) error {
 		return err
 	}
 
-	//_, err = removeContext(nodeutils, c.Name)
-	//if err != nil {
-	//	return err
-	//}
-
 	return PersistNode(node)
 
 }
 
 //Deprecated:- Use SetServer
-func AddServer(s *configapi.Server, setCurrent bool) error {
+func PutServer(s *configapi.Server, setCurrent bool) error {
 	return SetServer(s, setCurrent)
 }
 
 //Deprecated:- Use SetServer
-func PutServer(s *configapi.Server, setCurrent bool) error {
+func AddServer(s *configapi.Server, setCurrent bool) error {
 	return SetServer(s, setCurrent)
+
 }
 
 func SetServer(s *configapi.Server, setCurrent bool) error {
@@ -115,31 +124,60 @@ func SetServer(s *configapi.Server, setCurrent bool) error {
 		return err
 	}
 
-	err = setServer(node, s)
+	persist, err := setServer(node, s)
 	if err != nil {
 		return err
 	}
 
-	if setCurrent {
-		setCurrentServer(node, s.Name)
-	}
-
-	// Front fill Context and CurrentContext
-	c := convertServerToContext(s)
-
-	err = setContext(node, c)
-	if err != nil {
-		return err
-	}
-
-	if setCurrent {
-		err = setCurrentContext(node, c)
+	if persist {
+		err = PersistNode(node)
 		if err != nil {
 			return err
 		}
 	}
 
-	return PersistNode(node)
+	if setCurrent {
+		persist, err = setCurrentServer(node, s.Name)
+		if err != nil {
+			return err
+		}
+		if persist {
+			err = PersistNode(node)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Front fill Context and CurrentContext
+	c := convertServerToContext(s)
+
+	persist, err = setContext(node, c)
+	if err != nil {
+		return err
+	}
+
+	if persist {
+		err = PersistNode(node)
+		if err != nil {
+			return err
+		}
+	}
+
+	if setCurrent {
+		persist, err = setCurrentContext(node, c)
+		if err != nil {
+			return err
+		}
+		if persist {
+			err = PersistNode(node)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 
 }
 
@@ -238,23 +276,25 @@ func appendURLScheme(endpoint string) string {
 	return e
 }
 
-func setCurrentServer(node *yaml.Node, name string) (bool, error) {
+func setCurrentServer(node *yaml.Node, name string) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
 		c.Keys = []nodeutils.Key{
-			{Name: KeyCurrentServer, Type: yaml.ScalarNode, Value: name},
+			{Name: KeyCurrentServer, Type: yaml.ScalarNode, Value: ""},
 		}
 	}
 
 	currentServerNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return false, err
+		return persist, err
+	}
+	if currentServerNode.Value != name {
+		currentServerNode.Value = name
+		persist = true
 	}
 
-	currentServerNode.Value = name
-
-	return true, nil
+	return persist, err
 }
 
 func getServer(node *yaml.Node, name string) (*configapi.Server, error) {
@@ -335,29 +375,24 @@ func removeServer(node *yaml.Node, name string) (ok bool, err error) {
 	return true, nil
 }
 
-func setServers(node *yaml.Node, servers []*configapi.Server) (bool, error) {
-
+func setServers(node *yaml.Node, servers []*configapi.Server) error {
 	for _, server := range servers {
-		err := setServer(node, server)
+		_, err := setServer(node, server)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
-
-	return true, nil
+	return nil
 }
 
-func setServer(node *yaml.Node, s *configapi.Server) error {
+func setServer(node *yaml.Node, s *configapi.Server) (persist bool, err error) {
 
-	// Merge DiscoverSources separately
-	copyOfDiscoverySources := s.DiscoverySources
-	s.DiscoverySources = []configapi.PluginDiscovery{}
-	fmt.Println(copyOfDiscoverySources)
+	var persistDiscoverySources bool
 
-	//convert server to nodeutils
-	newNode, err := nodeutils.ConvertToNode[configapi.Server](s)
+	//convert server to node
+	newServerNode, err := nodeutils.ConvertToNode[configapi.Server](s)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	configOptions := func(c *nodeutils.Config) {
@@ -369,26 +404,39 @@ func setServer(node *yaml.Node, s *configapi.Server) error {
 
 	serversNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	exists := false
 	var result []*yaml.Node
 	for _, serverNode := range serversNode.Content {
-		if index := nodeutils.GetNodeIndex(serverNode.Content, "name"); index != -1 && serverNode.Content[index].Value == s.Name {
+		if index := nodeutils.GetNodeIndex(serverNode.Content, "name"); index != -1 &&
+			serverNode.Content[index].Value == s.Name {
 			exists = true
 
-			for _, discoverySource := range copyOfDiscoverySources {
-				err := setDiscoverySource(serverNode, discoverySource)
+			persist, err = nodeutils.NotEqual(newServerNode.Content[0], serverNode)
+			if err != nil {
+				return persist, err
+			}
+			if persist {
+				err = nodeutils.MergeNodes(newServerNode.Content[0], serverNode)
 				if err != nil {
-					return err
+					return false, err
 				}
 			}
 
-			err = nodeutils.MergeNodes(newNode.Content[0], serverNode)
+			persistDiscoverySources, err = setDiscoverySources(serverNode, s.DiscoverySources)
 			if err != nil {
-				return err
+				return persistDiscoverySources, err
 			}
+
+			if persistDiscoverySources {
+				err = nodeutils.MergeNodes(newServerNode.Content[0], serverNode)
+				if err != nil {
+					return persistDiscoverySources, err
+				}
+			}
+
 			result = append(result, serverNode)
 			continue
 		}
@@ -396,12 +444,13 @@ func setServer(node *yaml.Node, s *configapi.Server) error {
 	}
 
 	if !exists {
-		result = append(result, newNode.Content[0])
+		result = append(result, newServerNode.Content[0])
+		persist = true
 	}
 
 	serversNode.Content = result
 
-	return nil
+	return persistDiscoverySources || persist, err
 
 }
 

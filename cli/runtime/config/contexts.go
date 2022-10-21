@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
-	nodeutils "github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
+	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,32 +31,61 @@ func SetContext(c *configapi.Context, setCurrent bool) error {
 		return err
 	}
 
-	err = setContext(node, c)
+	persist, err := setContext(node, c)
 	if err != nil {
 		return err
 	}
 
-	if setCurrent {
-		err = setCurrentContext(node, c)
+	if persist {
+		err = PersistNode(node)
 		if err != nil {
 			return err
+		}
+	}
+
+	if setCurrent {
+		persist, err = setCurrentContext(node, c)
+		if err != nil {
+			return err
+		}
+
+		if persist {
+			err = PersistNode(node)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	s := convertContextToServer(c)
-	err = setServer(node, s)
+
+	persist, err = setServer(node, s)
 	if err != nil {
 		return err
 	}
 
-	if setCurrent {
-		_, err = setCurrentServer(node, s.Name)
+	if persist {
+		err = PersistNode(node)
 		if err != nil {
 			return err
 		}
 	}
 
-	return PersistNode(node)
+	if setCurrent {
+		persist, err = setCurrentServer(node, s.Name)
+		if err != nil {
+			return err
+		}
+
+		if persist {
+			err = PersistNode(node)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return err
 
 }
 
@@ -118,16 +147,30 @@ func SetCurrentContext(name string) error {
 		return err
 	}
 
-	err = setCurrentContext(node, ctx)
-	if err != nil {
-		return err
-	}
-	_, err = setCurrentServer(node, name)
+	persist, err := setCurrentContext(node, ctx)
 	if err != nil {
 		return err
 	}
 
-	return PersistNode(node)
+	if persist {
+		err = PersistNode(node)
+		if err != nil {
+			return err
+		}
+	}
+
+	persist, err = setCurrentServer(node, name)
+	if err != nil {
+		return err
+	}
+
+	if persist {
+		err = PersistNode(node)
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func RemoveCurrentContext(ctxType configapi.ContextType) error {
@@ -178,7 +221,7 @@ func getContext(node *yaml.Node, name string) (*configapi.Context, error) {
 			return ctx, nil
 		}
 	}
-	return nil, fmt.Errorf("could not find context %q", name)
+	return nil, fmt.Errorf("context %v not found", name)
 
 }
 
@@ -190,26 +233,24 @@ func getCurrentContext(node *yaml.Node, ctxType configapi.ContextType) (*configa
 	return cfg.GetCurrentContext(ctxType)
 }
 
-func setContexts(node *yaml.Node, contexts []*configapi.Context) (bool, error) {
+func setContexts(node *yaml.Node, contexts []*configapi.Context) (err error) {
 	for _, c := range contexts {
-		err := setContext(node, c)
+		_, err = setContext(node, c)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
-	return true, nil
+	return err
 }
 
-func setContext(node *yaml.Node, c *configapi.Context) error {
+func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err error) {
 
-	// Merge DiscoverSources separately
-	copyOfDiscoverySources := c.DiscoverySources
-	c.DiscoverySources = []configapi.PluginDiscovery{}
+	var persistDiscoverySources bool
 
 	//convert context to node
-	newContextNode, err := nodeutils.ConvertToNode[configapi.Context](c)
+	newContextNode, err := nodeutils.ConvertToNode[configapi.Context](ctx)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	configOptions := func(c *nodeutils.Config) {
@@ -221,38 +262,38 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 
 	contextsNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	exists := false
 	var result []*yaml.Node
 	for _, contextNode := range contextsNode.Content {
-		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 && contextNode.Content[index].Value == c.Name {
+		if index := nodeutils.GetNodeIndex(contextNode.Content, "name"); index != -1 &&
+			contextNode.Content[index].Value == ctx.Name {
 			exists = true
 
-			configOptions := func(c *nodeutils.Config) {
-				c.ForceCreate = true
-				c.Keys = []nodeutils.Key{
-					{Name: KeyDiscoverySources, Type: yaml.SequenceNode},
-				}
-			}
-
-			discoverySourcesNode, err := nodeutils.FindNode(node, configOptions)
+			persist, err = nodeutils.NotEqual(newContextNode.Content[0], contextNode)
 			if err != nil {
-				return err
+				return persist, err
 			}
-
-			for _, discoverySource := range copyOfDiscoverySources {
-				err = setDiscoverySource(discoverySourcesNode, discoverySource)
+			if persist {
+				err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
 				if err != nil {
-					return err
+					return persist, err
 				}
 			}
-			//Merging
-			err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
+
+			persistDiscoverySources, err = setDiscoverySources(contextNode, ctx.DiscoverySources)
 			if err != nil {
-				return err
+				return persistDiscoverySources, err
 			}
+			if persistDiscoverySources {
+				err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
+				if err != nil {
+					return persistDiscoverySources, err
+				}
+			}
+
 			result = append(result, contextNode)
 			continue
 		}
@@ -261,15 +302,16 @@ func setContext(node *yaml.Node, c *configapi.Context) error {
 
 	if !exists {
 		result = append(result, newContextNode.Content[0])
+		persist = true
 	}
 
 	contextsNode.Content = result
 
-	return nil
+	return persist, err
 
 }
 
-func setCurrentContext(node *yaml.Node, ctx *configapi.Context) error {
+func setCurrentContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -280,16 +322,20 @@ func setCurrentContext(node *yaml.Node, ctx *configapi.Context) error {
 
 	currentContextNode, err := nodeutils.FindNode(node.Content[0], configOptions)
 	if err != nil {
-		return err
+		return persist, err
 	}
 
 	if index := nodeutils.GetNodeIndex(currentContextNode.Content, string(ctx.Type)); index != -1 {
-		currentContextNode.Content[index].Value = ctx.Name
+		if currentContextNode.Content[index].Value != ctx.Name {
+			currentContextNode.Content[index].Value = ctx.Name
+			persist = true
+		}
 	} else {
 		currentContextNode.Content = append(currentContextNode.Content, nodeutils.CreateScalarNode(string(ctx.Type), ctx.Name)...)
+		persist = true
 	}
 
-	return nil
+	return persist, err
 
 }
 

@@ -77,14 +77,14 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 	}
 
 	if cfg.Kind != "" {
-		err = setKind(node, cfg.Kind)
+		_, err = setKind(node, cfg.Kind)
 		if err != nil {
 			return err
 		}
 	}
 
 	if cfg.APIVersion != "" {
-		err = setApiVersion(node, cfg.APIVersion)
+		_, err = setApiVersion(node, cfg.APIVersion)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.BOMRepo != "" {
-				err = setBomRepo(node, string(cfg.ClientOptions.CLI.BOMRepo))
+				err = setBomRepo(node, cfg.ClientOptions.CLI.BOMRepo)
 				if err != nil {
 					return err
 				}
@@ -198,7 +198,7 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 			}
 
 			if cfg.ClientOptions.CLI.CompatibilityFilePath != "" {
-				err = setCompatibilityFilePath(node, string(cfg.ClientOptions.CLI.CompatibilityFilePath))
+				 err = setCompatibilityFilePath(node, cfg.ClientOptions.CLI.CompatibilityFilePath)
 				if err != nil {
 					return err
 				}
