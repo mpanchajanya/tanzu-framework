@@ -79,6 +79,15 @@ func getCLIDiscoverySource(node *yaml.Node, name string) (*configapi.PluginDisco
 	}
 	return nil, errors.New("cli discovery source not found")
 }
+func setCLIDiscoverySources(node *yaml.Node, discoverySources []configapi.PluginDiscovery) (err error) {
+	for _, discoverySource := range discoverySources {
+		_, err = setCLIDiscoverySource(node, discoverySource)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
 
 func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscovery) (persist bool, err error) {
 	patchStrategies, err := getConfigMetadataPatchStrategy(node)
