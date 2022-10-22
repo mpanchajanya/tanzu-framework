@@ -144,22 +144,18 @@ func StoreClientConfig(cfg *configapi.ClientConfig) error {
 		}
 
 		if cfg.ClientOptions.CLI != nil {
-
+			//TODO : Test Set Repositories
 			if cfg.ClientOptions.CLI.Repositories != nil && len(cfg.ClientOptions.CLI.Repositories) != 0 {
-				for _, repository := range cfg.ClientOptions.CLI.Repositories {
-					_, err = setCLIRepository(node, repository)
-					if err != nil {
-						return err
-					}
+				err = setCLIRepositories(node, cfg.ClientOptions.CLI.Repositories)
+				if err != nil {
+					return err
 				}
 			}
 
 			if cfg.ClientOptions.CLI.DiscoverySources != nil && len(cfg.ClientOptions.CLI.DiscoverySources) != 0 {
-				for _, discoverySource := range cfg.ClientOptions.CLI.DiscoverySources {
-					_, err = setCLIDiscoverySource(node, discoverySource)
-					if err != nil {
-						return err
-					}
+				err = setCLIDiscoverySources(node, cfg.ClientOptions.CLI.DiscoverySources)
+				if err != nil {
+					return err
 				}
 			}
 

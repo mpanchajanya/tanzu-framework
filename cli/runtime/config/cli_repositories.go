@@ -89,6 +89,16 @@ func getCLIRepository(node *yaml.Node, name string) (*configapi.PluginRepository
 	return nil, errors.New("cli repository not found")
 }
 
+func setCLIRepositories(node *yaml.Node, repos []configapi.PluginRepository) (err error) {
+	for _, repository := range repos {
+		_, err = setCLIRepository(node, repository)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
 func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) (persist bool, err error) {
 
 	configOptions := func(c *nodeutils.Config) {
