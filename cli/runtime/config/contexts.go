@@ -250,6 +250,11 @@ func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err erro
 		patchStrategies = make(map[string]string)
 	}
 
+	patchStrategyOptions := &nodeutils.PatchStrategyOptions{
+		Key:             KeyContexts,
+		PatchStrategies: patchStrategies,
+	}
+
 	var persistDiscoverySources bool
 
 	//convert context to node
@@ -282,7 +287,7 @@ func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err erro
 				return persist, err
 			}
 			if persist {
-				err = nodeutils.ReplaceNodes(newContextNode.Content[0], contextNode, KeyContexts, patchStrategies)
+				err = nodeutils.ReplaceNodes(newContextNode.Content[0], contextNode, patchStrategyOptions)
 				if err != nil {
 					return persist, err
 				}
@@ -292,7 +297,7 @@ func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err erro
 				}
 			}
 
-			persistDiscoverySources, err = setDiscoverySources(contextNode, ctx.DiscoverySources, KeyContexts, patchStrategies)
+			persistDiscoverySources, err = setDiscoverySources(contextNode, ctx.DiscoverySources, patchStrategyOptions)
 			if err != nil {
 				return persistDiscoverySources, err
 			}

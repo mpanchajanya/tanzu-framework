@@ -14,6 +14,375 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func TestSetContextWithPatchStrategy(t *testing.T) {
+	// setup
+	func() {
+		LocalDirName = fmt.Sprintf(".tanzu-test")
+	}()
+
+	//defer func() {
+	//	cleanupDir(LocalDirName)
+	//}()
+
+	tests := []struct {
+		name    string
+		node    *yaml.Node
+		ctx     *v1alpha1.Context
+		current bool
+	}{
+		{
+			name: "should add new context with new discovery sources to empty client config",
+			node: &yaml.Node{
+				Kind: yaml.DocumentNode,
+				Content: []*yaml.Node{
+					{
+						Kind: yaml.MappingNode,
+						Content: []*yaml.Node{
+							{
+								Kind:  yaml.ScalarNode,
+								Value: "currentContext",
+							},
+							{
+								Kind:  yaml.MappingNode,
+								Value: "",
+								Content: []*yaml.Node{
+									{
+										Kind:  yaml.ScalarNode,
+										Value: "k8s",
+									},
+									{
+										Kind:  yaml.ScalarNode,
+										Value: "test-mc",
+									},
+								},
+							},
+							{
+								Kind:  yaml.ScalarNode,
+								Value: "current",
+							},
+							{
+								Kind:  yaml.ScalarNode,
+								Value: "test-mc",
+							},
+							{
+								Kind:  yaml.ScalarNode,
+								Value: "servers",
+							},
+							{
+								Kind:  yaml.SequenceNode,
+								Value: "",
+								Content: []*yaml.Node{
+									{
+										Kind: yaml.MappingNode,
+										Content: []*yaml.Node{
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "name",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "test-mc",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "type",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "managementcluster",
+											},
+										},
+									},
+								},
+							},
+							{
+								Kind:  yaml.ScalarNode,
+								Value: "contexts",
+							},
+							{
+								Kind:  yaml.SequenceNode,
+								Value: "",
+								Content: []*yaml.Node{
+									{
+										Kind: yaml.MappingNode,
+										Content: []*yaml.Node{
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "name",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "test-mc",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "type",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "k8s",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "clusterOpts",
+											},
+											{
+												Kind:  yaml.MappingNode,
+												Value: "",
+												Content: []*yaml.Node{
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "isManagementCluster",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Tag:   "!!bool",
+														Value: "true",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "annotation",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "one",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "required",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Tag:   "!!bool",
+														Value: "true",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "annotationStruct",
+													},
+													{
+														Kind:  yaml.MappingNode,
+														Value: "",
+														Content: []*yaml.Node{
+															{
+																Kind:  yaml.ScalarNode,
+																Value: "one",
+															},
+															{
+																Kind:  yaml.ScalarNode,
+																Value: "one",
+															},
+														},
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "endpoint",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "test-endpoint",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "path",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "test-path",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "context",
+													},
+													{
+														Kind:  yaml.ScalarNode,
+														Value: "test-context",
+													},
+												},
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "discoverySources",
+											},
+											{
+												Kind:  yaml.SequenceNode,
+												Value: "",
+												Content: []*yaml.Node{
+													{
+														Kind: yaml.MappingNode,
+														Content: []*yaml.Node{
+															{
+																Kind:  yaml.ScalarNode,
+																Value: "gcp",
+															},
+															{
+																Kind: yaml.MappingNode,
+																Content: []*yaml.Node{
+
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "name",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "test",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "bucket",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "test-bucket",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "manifestPath",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "test-manifest-path",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "annotation",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "one",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Value: "required",
+																	},
+																	{
+																		Kind:  yaml.ScalarNode,
+																		Tag:   "!!bool",
+																		Value: "true",
+																	},
+																}},
+															{
+																Value: "contextType",
+																Kind:  yaml.ScalarNode,
+															},
+															{
+																Value: "tmc",
+																Kind:  yaml.ScalarNode,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								Kind:  yaml.ScalarNode,
+								Value: "configMetadata",
+							},
+							{
+								Kind:  yaml.MappingNode,
+								Value: "",
+								Content: []*yaml.Node{
+									{
+										Kind:  yaml.ScalarNode,
+										Value: "patchStrategy",
+									},
+									{
+										Kind:  yaml.MappingNode,
+										Value: "",
+										Content: []*yaml.Node{
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "contexts.clusterOpts.annotation",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "replace",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "contexts.clusterOpts.annotationStruct",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "replace",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "contexts.discoverySources.gcp.annotation",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "replace",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "contexts.globalOpts.auth",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "replace",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "servers.managementClusterOpts.required",
+											},
+											{
+												Kind:  yaml.ScalarNode,
+												Value: "replace",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ctx: &v1alpha1.Context{
+				Name: "test-mc",
+				Type: "k8s",
+				ClusterOpts: &v1alpha1.ClusterServer{
+					Endpoint:            "test-endpoint",
+					Path:                "test-path",
+					Context:             "test-context",
+					IsManagementCluster: true,
+				},
+				DiscoverySources: []v1alpha1.PluginDiscovery{
+					{
+						GCP: &v1alpha1.GCPDiscovery{
+							Name:         "test",
+							Bucket:       "updated-test-bucket",
+							ManifestPath: "test-manifest-path",
+						},
+						ContextType: v1alpha1.CtxTypeTMC,
+					},
+				},
+			},
+			current: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			////setup data
+			//node, err := nodeutils.ConvertToNode(tc.src)
+			//assert.NoError(t, err)
+			err := PersistNode(tc.node)
+			assert.NoError(t, err)
+
+			err = SetContext(tc.ctx, tc.current)
+
+			ok, err := ContextExists(tc.ctx.Name)
+			assert.True(t, ok)
+			assert.NoError(t, err)
+		})
+	}
+
+}
+
 func TestSetContextWithDiscoverySourceWithReplaceStrategy(t *testing.T) {
 	// setup
 	func() {

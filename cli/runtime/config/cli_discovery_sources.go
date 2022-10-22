@@ -85,6 +85,12 @@ func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDisc
 	if err != nil {
 		patchStrategies = make(map[string]string)
 	}
+
+	patchStrategyOptions := &nodeutils.PatchStrategyOptions{
+		Key:             KeyClientOptions + "." + KeyCLI,
+		PatchStrategies: patchStrategies,
+	}
+
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
 		c.Keys = []nodeutils.Key{
@@ -99,7 +105,7 @@ func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDisc
 		return persist, err
 	}
 
-	persist, err = setDiscoverySource(discoverySourcesNode, discoverySource, KeyClientOptions+"."+KeyCLI, patchStrategies)
+	persist, err = setDiscoverySource(discoverySourcesNode, discoverySource, patchStrategyOptions)
 	if err != nil {
 		return persist, err
 	}

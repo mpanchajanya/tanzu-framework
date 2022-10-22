@@ -14,3 +14,8 @@ type Key struct {
 }
 
 type Options func(config *Config)
+
+type PatchStrategyOptions struct {
+	Key             string
+	PatchStrategies map[string]string
+}

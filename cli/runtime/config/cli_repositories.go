@@ -90,6 +90,15 @@ func getCLIRepository(node *yaml.Node, name string) (*configapi.PluginRepository
 }
 
 func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) (persist bool, err error) {
+	patchStrategies, err := getConfigMetadataPatchStrategy(node)
+	if err != nil {
+		patchStrategies = make(map[string]string)
+	}
+
+	patchStrategyOptions := &nodeutils.PatchStrategyOptions{
+		Key:             KeyClientOptions + "." + KeyCLI,
+		PatchStrategies: patchStrategies,
+	}
 
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -105,7 +114,7 @@ func setCLIRepository(node *yaml.Node, repository configapi.PluginRepository) (p
 		return persist, err
 	}
 
-	return setRepository(repositoriesNode, repository)
+	return setRepository(repositoriesNode, repository, patchStrategyOptions)
 
 }
 
@@ -159,7 +168,7 @@ func deleteCLIRepository(node *yaml.Node, name string) error {
 
 }
 
-func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository) (persist bool, err error) {
+func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepository, patchStrategyOptions *nodeutils.PatchStrategyOptions) (persist bool, err error) {
 	newNode, err := nodeutils.ConvertToNode[configapi.PluginRepository](&repository)
 	if err != nil {
 		return persist, err
@@ -180,6 +189,8 @@ func setRepository(repositoriesNode *yaml.Node, repository configapi.PluginRepos
 				exists = true
 				persist, err = nodeutils.NotEqual(newNode.Content[0], repositoryNode)
 				if persist {
+					patchStrategyOptions.Key = patchStrategyOptions.Key + "." + KeyRepositories
+					_ = nodeutils.ReplaceNodes(newNode.Content[0], repositoryNode, patchStrategyOptions)
 					err = nodeutils.MergeNodes(newNode.Content[0], repositoryNode)
 					if err != nil {
 						return persist, err

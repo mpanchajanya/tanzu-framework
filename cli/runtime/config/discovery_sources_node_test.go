@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
+	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,7 +45,12 @@ func TestSetDiscoverySource(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := setDiscoverySource(tc.contextNode, tc.discoverySource, "contexts", map[string]string{})
+
+			options := &nodeutils.PatchStrategyOptions{
+				Key:             KeyContexts,
+				PatchStrategies: map[string]string{},
+			}
+			_, err := setDiscoverySource(tc.contextNode, tc.discoverySource, options)
 			if tc.errStr == "" {
 				assert.NoError(t, err)
 			} else {
