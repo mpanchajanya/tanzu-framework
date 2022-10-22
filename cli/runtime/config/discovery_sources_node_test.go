@@ -44,7 +44,7 @@ func TestSetDiscoverySource(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := setDiscoverySource(tc.contextNode, tc.discoverySource)
+			_, err := setDiscoverySource(tc.contextNode, tc.discoverySource, "contexts", map[string]string{})
 			if tc.errStr == "" {
 				assert.NoError(t, err)
 			} else {

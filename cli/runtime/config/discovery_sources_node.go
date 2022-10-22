@@ -16,7 +16,7 @@ const (
 	DiscoveryTypeREST       = "rest"
 )
 
-func setDiscoverySources(node *yaml.Node, discoverySources []configapi.PluginDiscovery) (persist bool, err error) {
+func setDiscoverySources(node *yaml.Node, discoverySources []configapi.PluginDiscovery, pathStrategyParentKey string, patchStrategies map[string]string) (persist bool, err error) {
 
 	opts := func(c *nodeutils.Config) {
 		c.ForceCreate = true
@@ -31,7 +31,7 @@ func setDiscoverySources(node *yaml.Node, discoverySources []configapi.PluginDis
 	}
 
 	for _, discoverySource := range discoverySources {
-		persist, err = setDiscoverySource(discoverySourcesNode, discoverySource)
+		persist, err = setDiscoverySource(discoverySourcesNode, discoverySource, pathStrategyParentKey, patchStrategies)
 		if err != nil {
 			return persist, err
 		}
@@ -39,7 +39,7 @@ func setDiscoverySources(node *yaml.Node, discoverySources []configapi.PluginDis
 	return persist, err
 }
 
-func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery) (persist bool, err error) {
+func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configapi.PluginDiscovery, patchStrategyParentKey string, patchStrategies map[string]string) (persist bool, err error) {
 	newNode, err := nodeutils.ConvertToNode[configapi.PluginDiscovery](&discoverySource)
 	if err != nil {
 		return persist, err
@@ -59,11 +59,13 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 			if discoverySourceFieldIndex := nodeutils.GetNodeIndex(discoverySourceNode.Content[discoverySourceIndex].Content, "name"); discoverySourceFieldIndex != -1 &&
 				discoverySourceNode.Content[discoverySourceIndex].Content[discoverySourceFieldIndex].Value == discoverySourceName {
 				exists = true
+
 				persist, err = nodeutils.NotEqual(newNode.Content[0], discoverySourceNode)
 				if err != nil {
 					return persist, err
 				}
 				if persist {
+					_ = nodeutils.ReplaceNodes(newNode.Content[0], discoverySourceNode, patchStrategyParentKey+"."+KeyDiscoverySources, patchStrategies)
 					err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode)
 					if err != nil {
 						return persist, err

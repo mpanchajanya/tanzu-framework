@@ -81,6 +81,10 @@ func getCLIDiscoverySource(node *yaml.Node, name string) (*configapi.PluginDisco
 }
 
 func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDiscovery) (persist bool, err error) {
+	patchStrategies, err := getConfigMetadataPatchStrategy(node)
+	if err != nil {
+		patchStrategies = make(map[string]string)
+	}
 	configOptions := func(c *nodeutils.Config) {
 		c.ForceCreate = true
 		c.Keys = []nodeutils.Key{
@@ -95,7 +99,7 @@ func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDisc
 		return persist, err
 	}
 
-	persist, err = setDiscoverySource(discoverySourcesNode, discoverySource)
+	persist, err = setDiscoverySource(discoverySourcesNode, discoverySource, KeyClientOptions+"."+KeyCLI, patchStrategies)
 	if err != nil {
 		return persist, err
 	}

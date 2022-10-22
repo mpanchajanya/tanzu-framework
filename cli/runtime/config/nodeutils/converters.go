@@ -51,10 +51,10 @@ func ConvertMapToNode(envs map[string]string) (*yaml.Node, error) {
 	return &node, nil
 }
 
-func ConvertNodeToMapInterface(node *yaml.Node) (envs map[string]interface{}, err error) {
-	err = node.Decode(&envs)
+func ConvertNodeToMapInterface(node *yaml.Node) (generic map[string]interface{}, err error) {
+	err = node.Decode(&generic)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode node to client config")
 	}
-	return envs, err
+	return generic, err
 }

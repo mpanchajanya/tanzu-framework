@@ -386,6 +386,10 @@ func setServers(node *yaml.Node, servers []*configapi.Server) error {
 }
 
 func setServer(node *yaml.Node, s *configapi.Server) (persist bool, err error) {
+	patchStrategies, err := getConfigMetadataPatchStrategy(node)
+	if err != nil {
+		patchStrategies = make(map[string]string)
+	}
 
 	var persistDiscoverySources bool
 
@@ -419,13 +423,14 @@ func setServer(node *yaml.Node, s *configapi.Server) (persist bool, err error) {
 				return persist, err
 			}
 			if persist {
+				_ = nodeutils.ReplaceNodes(newServerNode.Content[0], serverNode, KeyServers, patchStrategies)
 				err = nodeutils.MergeNodes(newServerNode.Content[0], serverNode)
 				if err != nil {
 					return false, err
 				}
 			}
 
-			persistDiscoverySources, err = setDiscoverySources(serverNode, s.DiscoverySources)
+			persistDiscoverySources, err = setDiscoverySources(serverNode, s.DiscoverySources, KeyServers, patchStrategies)
 			if err != nil {
 				return persistDiscoverySources, err
 			}

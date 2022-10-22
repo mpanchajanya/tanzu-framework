@@ -22,12 +22,25 @@ func GetConfigMetadata() (*configapi.ConfigMetadata, error) {
 }
 
 func GetConfigMetadataPatchStrategy() (map[string]string, error) {
-	configMetadata, err := GetConfigMetadata()
+	node, err := GetClientConfigNode()
+	if err != nil {
+		return nil, err
+	}
+	return getConfigMetadataPatchStrategy(node)
+
+}
+
+func getConfigMetadataPatchStrategy(node *yaml.Node) (map[string]string, error) {
+	cfg, err := nodeutils.ConvertFromNode[configapi.ClientConfig](node)
 	if err != nil {
 		return nil, err
 	}
 
-	return configMetadata.PatchStrategy, nil
+	if cfg.ConfigMetadata != nil && cfg.ConfigMetadata.PatchStrategy != nil {
+		return cfg.ConfigMetadata.PatchStrategy, nil
+	}
+	return nil, nil
+
 }
 
 func getConfigMetadata(node *yaml.Node) (*configapi.ConfigMetadata, error) {
@@ -35,7 +48,12 @@ func getConfigMetadata(node *yaml.Node) (*configapi.ConfigMetadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	return cfg.ConfigMetadata, nil
+	if cfg != nil && cfg.ConfigMetadata != nil {
+		return cfg.ConfigMetadata, nil
+	}
+
+	return nil, nil
+
 }
 
 func SetConfigMetadataPatchStrategy(key, value string) error {

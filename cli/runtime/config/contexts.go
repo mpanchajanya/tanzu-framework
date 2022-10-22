@@ -245,6 +245,11 @@ func setContexts(node *yaml.Node, contexts []*configapi.Context) (err error) {
 
 func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err error) {
 
+	patchStrategies, err := getConfigMetadataPatchStrategy(node)
+	if err != nil {
+		patchStrategies = make(map[string]string)
+	}
+
 	var persistDiscoverySources bool
 
 	//convert context to node
@@ -277,13 +282,17 @@ func setContext(node *yaml.Node, ctx *configapi.Context) (persist bool, err erro
 				return persist, err
 			}
 			if persist {
+				err = nodeutils.ReplaceNodes(newContextNode.Content[0], contextNode, KeyContexts, patchStrategies)
+				if err != nil {
+					return persist, err
+				}
 				err = nodeutils.MergeNodes(newContextNode.Content[0], contextNode)
 				if err != nil {
 					return persist, err
 				}
 			}
 
-			persistDiscoverySources, err = setDiscoverySources(contextNode, ctx.DiscoverySources)
+			persistDiscoverySources, err = setDiscoverySources(contextNode, ctx.DiscoverySources, KeyContexts, patchStrategies)
 			if err != nil {
 				return persistDiscoverySources, err
 			}
