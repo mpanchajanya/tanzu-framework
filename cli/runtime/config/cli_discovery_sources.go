@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
@@ -96,7 +98,7 @@ func setCLIDiscoverySource(node *yaml.Node, discoverySource configapi.PluginDisc
 	}
 
 	patchStrategyOptions := &nodeutils.PatchStrategyOptions{
-		Key:             KeyClientOptions + "." + KeyCLI,
+		Key:             fmt.Sprintf("%v.%v", KeyClientOptions, KeyCLI),
 		PatchStrategies: patchStrategies,
 	}
 

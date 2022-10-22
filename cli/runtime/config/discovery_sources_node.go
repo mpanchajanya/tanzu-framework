@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	configapi "github.com/vmware-tanzu/tanzu-framework/cli/runtime/apis/config/v1alpha1"
 	"github.com/vmware-tanzu/tanzu-framework/cli/runtime/config/nodeutils"
@@ -64,7 +66,7 @@ func setDiscoverySource(discoverySourcesNode *yaml.Node, discoverySource configa
 					return persist, err
 				}
 				if persist {
-					patchStrategyOptions.Key = patchStrategyOptions.Key + "." + KeyDiscoverySources
+					patchStrategyOptions.Key = fmt.Sprintf("%v.%v", patchStrategyOptions.Key, KeyDiscoverySources)
 					_ = nodeutils.ReplaceNodes(newNode.Content[0], discoverySourceNode, patchStrategyOptions)
 					err = nodeutils.MergeNodes(newNode.Content[0], discoverySourceNode)
 					if err != nil {

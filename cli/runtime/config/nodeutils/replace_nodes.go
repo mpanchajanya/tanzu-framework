@@ -25,8 +25,8 @@ func ReplaceNodes(src, dst *yaml.Node, options *PatchStrategyOptions) error {
 			key := options.Key
 			for j := 0; j < len(src.Content); j += 2 {
 				if ok, _ := EqualNodes(dst.Content[i], src.Content[j]); ok {
-					key = key + "." + dst.Content[i].Value
 					found = true
+					key = fmt.Sprintf("%v.%v", key, dst.Content[i].Value)
 					fmt.Printf("found fields %v\n", key)
 					if err := ReplaceNodes(src.Content[j+1], dst.Content[i+1], options); err != nil {
 						return errors.New("at key " + src.Content[i].Value + ": " + err.Error())
@@ -36,7 +36,7 @@ func ReplaceNodes(src, dst *yaml.Node, options *PatchStrategyOptions) error {
 				}
 			}
 			if !found {
-				key = key + "." + dst.Content[i].Value
+				key = fmt.Sprintf("%v.%v", key, dst.Content[i].Value)
 				fmt.Printf("unknown found %v:-%v\n", key, dst.Content[i].Value)
 				if options.PatchStrategies[key] == "replace" {
 					dst.Content = append(dst.Content[:i], dst.Content[i+1:]...)
